@@ -236,17 +236,13 @@
             <span class="legend-item no-price"><i class="fas fa-circle"></i> No Price</span>
           </div>
           
-          <!-- CSV Actions -->
-          <button class="btn btn-solid btn-primary" id="btn-export-matrix">
-            <i class="fas fa-upload"></i> Export CSV
-          </button>
-          <button class="btn btn-solid btn-success" id="btn-import-matrix">
-            <i class="fas fa-download"></i> Import CSV
+          <!-- Data Actions -->
+          <button class="btn btn-solid btn-success" id="btn-export-excel">
+            <i class="fas fa-file-excel"></i> Export Excel
           </button>
           <button class="btn btn-solid btn-secondary" id="btn-import-pdf">
             <i class="fas fa-file-pdf"></i> Import PDF
           </button>
-          <input type="file" id="import-file-input" accept=".csv" style="display: none;">
         </div>
       </div>
       
@@ -630,50 +626,6 @@
       <button class="btn btn-solid btn-default rounded-lg" id="btn-confirm-gsheet-cancel">Cancel</button>
       <button class="btn btn-solid btn-success" id="btn-confirm-gsheet-yes">
         <i class="fas fa-check"></i> Yes, Save
-      </button>
-    </div>
-  </div>
-</div>
-
-<!-- CSV IMPORT CONFIRMATION MODAL -->
-<div id="modal-confirm-csv-import" class="modal-overlay">
-  <div class="modal-content" style="max-width: 450px;">
-    <div class="modal-header">
-      <h3><i class="fas fa-file-import"></i> Confirm CSV Import</h3>
-      <button class="close-modal" id="btn-csv-import-close">&times;</button>
-    </div>
-    <div class="modal-body" style="text-align: center; padding: 20px;">
-      <div style="font-size: 3rem; color: var(--warning); margin-bottom: 1rem;">
-        <i class="fas fa-exclamation-triangle"></i>
-      </div>
-      <p style="font-weight: 600; margin-bottom: 0.5rem;">Import CSV Data?</p>
-      <p class="help-text">This will update existing pricing data with values from the CSV file. New SKUs will be added, existing entries will be updated.</p>
-      <p class="help-text" style="margin-top: 1rem;"><strong>File:</strong> <span id="csv-import-filename">—</span></p>
-    </div>
-    <div class="modal-footer" style="display: flex; gap: 10px; justify-content: center;">
-      <button class="btn btn-solid btn-default rounded-lg" id="btn-csv-import-cancel">Cancel</button>
-      <button class="btn btn-solid btn-success" id="btn-csv-import-confirm">
-        <i class="fas fa-upload"></i> Import
-      </button>
-    </div>
-  </div>
-</div>
-
-<!-- CSV IMPORT RESULTS MODAL -->
-<div id="modal-csv-import-results" class="modal-overlay">
-  <div class="modal-content" style="max-width: 500px;">
-    <div class="modal-header">
-      <h3><i class="fas fa-check-circle"></i> Import Complete</h3>
-      <button class="close-modal" id="btn-csv-results-close">&times;</button>
-    </div>
-    <div class="modal-body" style="padding: 20px;">
-      <div id="csv-import-results-content">
-        <!-- Dynamically populated -->
-      </div>
-    </div>
-    <div class="modal-footer" style="display: flex; gap: 10px; justify-content: center;">
-      <button class="btn btn-solid btn-success" id="btn-csv-results-ok">
-        <i class="fas fa-check"></i> OK
       </button>
     </div>
   </div>

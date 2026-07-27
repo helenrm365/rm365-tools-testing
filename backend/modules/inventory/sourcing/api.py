@@ -7,7 +7,7 @@ from __future__ import annotations
 import logging
 from typing import List, Optional, Union
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Response, UploadFile, File, Form
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, Form
 from fastapi.responses import StreamingResponse
 
 from common.deps import get_current_user
@@ -398,43 +398,6 @@ def get_analysis_dashboard(
 # ============================================================================
 # IMPORT/EXPORT
 # ============================================================================
-
-@router.get("/export/csv")
-def export_matrix_csv(user=Depends(get_current_user)):
-    """Export supplier matrix as CSV file"""
-    try:
-        csv_content = _svc().export_matrix_csv()
-        
-        return Response(
-            content=csv_content,
-            media_type="text/csv",
-            headers={
-                "Content-Disposition": "attachment; filename=supplier_matrix.csv"
-            }
-        )
-    except Exception as e:
-        logger.error(f"Error exporting CSV: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@router.post("/import/csv")
-async def import_matrix_csv(
-    file: UploadFile = File(...),
-    user=Depends(get_current_user)
-):
-    """
-    Import supplier matrix from CSV file
-    Expected format: sku, SUPPLIER1_price, SUPPLIER1_currency, ...
-    """
-    try:
-        contents = await file.read()
-        csv_content = contents.decode('utf-8')
-        result = _svc().import_matrix_csv(csv_content)
-        return {"status": "success", **result}
-    except Exception as e:
-        logger.error(f"Error importing CSV: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
 
 @router.post("/import/pdf", response_model=PdfImportPreviewResponse)
 async def import_matrix_pdf(

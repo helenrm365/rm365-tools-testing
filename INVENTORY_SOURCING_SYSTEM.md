@@ -14,7 +14,7 @@ The Inventory Sourcing module implements a sophisticated multi-supplier price co
 4. [Supplier Management](#supplier-management)
 5. [Supplier Matrix](#supplier-matrix)
 6. [Analysis Dashboard](#analysis-dashboard)
-7. [CSV Export/Import](#csv-exportimport)
+7. [Excel Export](#excel-export)
 8. [API Reference](#api-reference)
 9. [Database Schema](#database-schema)
 10. [Workflow Guide](#workflow-guide)
@@ -264,25 +264,27 @@ SKU: WIDGET-001
 └── CHINAD:  ¥85.00 CNY → £9.29 GBP (normalized) ★ BEST
 ```
 
-### Bulk Operations
+### Excel Export
 
-**CSV Export**:
-- Exports ALL products from `inventory_metadata` (same source as Label Generator)
-- Includes `product_name` column for reference
-- Products without pricing have empty supplier columns
-- Format: `sku, product_name, SUPPLIER1_price, SUPPLIER1_currency, SUPPLIER1_updated, ...`
-- Great for offline editing in Excel/Google Sheets
+The **Export Excel** button on the Supplier Matrix builds a formatted `.xlsx`
+report of the analysis data — the Analysis Dashboard in spreadsheet form. It is
+generated entirely in the browser (ExcelJS, loaded on demand) from a single
+`/analysis` call, and honours the matrix search box when one is active.
 
-**CSV Import (Update-Only)**:
-- Same format as export
-- **UPDATE-ONLY behavior** (similar to Magento Add/Update import):
-  - Only updates values that are provided (non-empty cells)
-  - Empty cells preserve existing database values
-  - SKUs must exist in `inventory_metadata` (cannot add new products)
-  - If a SKU has no pricing and user adds values → creates them
-  - If a SKU has pricing and user updates values → updates them
-- Validates supplier codes exist
-- Reports skipped invalid SKUs
+The workbook contains four sheets:
+
+| Sheet | Contents |
+|-------|----------|
+| **Summary** | Portfolio KPIs (counts + share of catalogue), margin headlines, best-price wins per supplier |
+| **Price Analysis** | One row per product: SKU, item ID, product, brand, category, status, sales price, best cost, best supplier, cost date, margin % / value / status, suppliers quoted. Margin block is colour-coded by health; frozen header and auto-filter |
+| **Supplier Matrix** | SKU × supplier grid of GBP-normalised costs, best cost per row highlighted |
+| **Supplier Performance** | Per supplier: SKUs quoted, best-price wins, win rate, average quoted cost, average premium vs. best |
+
+Summary figures are recomputed from the exported rows, so they always agree with
+the sheets even when a filter is applied.
+
+Bulk *inbound* pricing updates go through **Import PDF** (supplier price lists)
+or the Google Sheets sync, not a spreadsheet upload.
 
 ---
 
@@ -389,8 +391,6 @@ For each product, the analysis identifies the winning supplier:
 |--------|----------|-------------|
 | GET | `/matrix` | Get supplier matrix view |
 | GET | `/analysis` | Get analysis dashboard |
-| GET | `/export/csv` | Export matrix as CSV (all products) |
-| POST | `/import/csv` | Import matrix from CSV (update-only) |
 
 ### Example Requests
 
@@ -618,7 +618,7 @@ CACHE_DURATION = timedelta(hours=1)
 
 1. **Pagination**: Large inventories should use pagination (default 100 items/page)
 2. **Search First**: Use search rather than scrolling through all products
-3. **Bulk Updates**: Use CSV import for large pricing updates
+3. **Bulk Updates**: Use PDF import or the Google Sheets sync for large pricing updates
 4. **Filter Actively**: Use margin filters to focus on problem areas
 
 ---
@@ -644,9 +644,10 @@ For issues or feature requests, contact the development team or open an issue in
 **Module Version**: 1.1.0  
 **Last Updated**: January 2026
 
+**Recent Changes (v1.2.0)**:
+- CSV export/import replaced by a formatted multi-sheet Excel export
+
 **Recent Changes (v1.1.0)**:
 - Products now sourced from `inventory_metadata` table (same as Label Generator)
 - Magento prices use `special_price > price > N/A` logic
-- CSV export includes all products with `product_name` column
-- CSV import uses update-only behavior (empty cells preserve existing values)
 - Brand extracted from SKU prefix

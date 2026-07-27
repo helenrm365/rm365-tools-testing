@@ -397,11 +397,7 @@ function setupEventListeners() {
   initDropdown('#supplier-currency');
   
   // Matrix (auto-save on blur - no save button needed)
-  document.getElementById('btn-export-matrix')?.addEventListener('click', exportMatrix);
-  document.getElementById('btn-import-matrix')?.addEventListener('click', () => {
-    document.getElementById('import-file-input')?.click();
-  });
-  document.getElementById('import-file-input')?.addEventListener('change', handleImportFileSelect);
+  document.getElementById('btn-export-excel')?.addEventListener('click', exportMatrixExcel);
   document.getElementById('matrix-search')?.addEventListener('input', debounce(handleMatrixSearch, 500));
 
   // PDF Import
@@ -553,21 +549,6 @@ function setupEventListeners() {
     });
   }
 
-  // CSV Import Confirmation Modal
-  document.getElementById('btn-csv-import-close')?.addEventListener('click', closeCsvImportModal);
-  document.getElementById('btn-csv-import-cancel')?.addEventListener('click', closeCsvImportModal);
-  document.getElementById('btn-csv-import-confirm')?.addEventListener('click', confirmCsvImport);
-  document.getElementById('modal-confirm-csv-import')?.addEventListener('click', (e) => {
-    if (e.target === e.currentTarget) closeCsvImportModal();
-  });
-  
-  // CSV Import Results Modal
-  document.getElementById('btn-csv-results-close')?.addEventListener('click', closeCsvResultsModal);
-  document.getElementById('btn-csv-results-ok')?.addEventListener('click', closeCsvResultsModal);
-  document.getElementById('modal-csv-import-results')?.addEventListener('click', (e) => {
-    if (e.target === e.currentTarget) closeCsvResultsModal();
-  });
-  
   // GSheets Card - buttons on the card
   document.getElementById('btn-gsheet-export')?.addEventListener('click', handleGSheetExport);
   document.getElementById('btn-gsheet-import')?.addEventListener('click', handleGSheetImport);
@@ -1625,243 +1606,639 @@ function stopAutoImport() {
   }
 }
 
-async function exportMatrix() {
+// ============================================================================
+// EXCEL EXPORT (Analysis Dashboard → formatted workbook)
+// ============================================================================
+
+/**
+ * Lazily load a third-party script from a CDN (ExcelJS is only needed on export,
+ * so it stays out of the initial page payload).
+ */
+function loadScript(src) {
+  return new Promise((resolve, reject) => {
+    if (document.querySelector(`script[src="${src}"]`)) return resolve();
+    const s = document.createElement('script');
+    s.src = src;
+    s.onload = resolve;
+    s.onerror = () => reject(new Error(`Failed to load script: ${src}`));
+    document.head.appendChild(s);
+  });
+}
+
+// ── Workbook palette ────────────────────────────────────────────────────────
+const XL = {
+  navy:      'FF1F3864',
+  blue:      'FF2F5496',
+  bandLight: 'FFF7F9FC',
+  border:    'FFBFBFBF',
+  healthyBg: 'FFC6EFCE', healthyFg: 'FF1A5C1A',
+  warningBg: 'FFFFEB9C', warningFg: 'FF7B5C00',
+  lossBg:    'FFFFC7CE', lossFg:    'FF9C0006',
+  mutedBg:   'FFEDEDED', mutedFg:   'FF767171',
+  bestBg:    'FFD9F2D9', bestFg:    'FF1A5C1A',
+};
+
+const XL_THIN_BORDER = {
+  top:    { style: 'thin', color: { argb: XL.border } },
+  bottom: { style: 'thin', color: { argb: XL.border } },
+  left:   { style: 'thin', color: { argb: XL.border } },
+  right:  { style: 'thin', color: { argb: XL.border } },
+};
+
+const FMT_GBP = '£#,##0.00';
+const FMT_PCT = '0.0"%"';
+const FMT_DATE = 'dd/mm/yyyy';
+
+function xlFill(argb) {
+  return { type: 'pattern', pattern: 'solid', fgColor: { argb } };
+}
+
+/** Style a row of header cells with the report's navy header treatment. */
+function xlWriteHeader(ws, rowNum, labels) {
+  labels.forEach((label, i) => {
+    const cell = ws.getCell(rowNum, i + 1);
+    cell.value = label;
+    cell.fill = xlFill(XL.navy);
+    cell.font = { name: 'Calibri', size: 11, bold: true, color: { argb: 'FFFFFFFF' } };
+    cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+    cell.border = XL_THIN_BORDER;
+  });
+  ws.getRow(rowNum).height = 24;
+}
+
+/** Report title block written into rows 1-2 of a sheet. */
+function xlWriteTitle(ws, rowNum, span, title, subtitle) {
+  ws.mergeCells(rowNum, 1, rowNum, span);
+  const t = ws.getCell(rowNum, 1);
+  t.value = title;
+  t.font = { name: 'Calibri', size: 16, bold: true, color: { argb: 'FFFFFFFF' } };
+  t.fill = xlFill(XL.blue);
+  t.alignment = { horizontal: 'left', vertical: 'middle', indent: 1 };
+  ws.getRow(rowNum).height = 30;
+
+  ws.mergeCells(rowNum + 1, 1, rowNum + 1, span);
+  const s = ws.getCell(rowNum + 1, 1);
+  s.value = subtitle;
+  s.font = { name: 'Calibri', size: 10, italic: true, color: { argb: 'FF595959' } };
+  s.alignment = { horizontal: 'left', vertical: 'middle', indent: 1 };
+  ws.getRow(rowNum + 1).height = 18;
+}
+
+/** Section heading (light blue band) used on the summary sheet. */
+function xlWriteSection(ws, rowNum, span, label) {
+  ws.mergeCells(rowNum, 1, rowNum, span);
+  const c = ws.getCell(rowNum, 1);
+  c.value = label;
+  c.font = { name: 'Calibri', size: 12, bold: true, color: { argb: XL.navy } };
+  c.fill = xlFill('FFD9E1F2');
+  c.alignment = { horizontal: 'left', vertical: 'middle', indent: 1 };
+  ws.getRow(rowNum).height = 22;
+}
+
+/** Parse an ISO timestamp into a Date for Excel, or null when absent/invalid. */
+function xlDate(iso) {
+  if (!iso) return null;
+  const d = new Date(iso);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+/** Fill/font pair for a row's margin status. */
+function xlMarginStyle(marginStatus) {
+  switch (marginStatus) {
+    case 'healthy': return [XL.healthyBg, XL.healthyFg];
+    case 'warning': return [XL.warningBg, XL.warningFg];
+    case 'loss':    return [XL.lossBg,    XL.lossFg];
+    default:        return [XL.mutedBg,   XL.mutedFg];
+  }
+}
+
+const MARGIN_STATUS_LABELS = {
+  healthy: 'Healthy (≥20%)',
+  warning: 'Low (0–20%)',
+  loss: 'Loss making',
+  no_magento_price: 'No sales price',
+  no_data: 'No supplier data',
+};
+
+/**
+ * Recompute the dashboard summary from the exact rows being exported, so the
+ * figures always match the sheets (the backend summary covers the full
+ * catalogue and would disagree whenever a search filter is applied).
+ */
+function buildExportSummary(rows) {
+  const s = {
+    total: rows.length,
+    withPricing: 0,
+    withSalesPrice: 0,
+    healthy: 0,
+    warning: 0,
+    loss: 0,
+    noSalesPrice: 0,
+    noData: 0,
+    averageMargin: null,
+    totalMarginValue: 0,
+  };
+
+  let marginSum = 0;
+  let marginCount = 0;
+
+  rows.forEach(r => {
+    const supplierCount = Object.keys(r.supplier_prices || {}).length;
+    if (supplierCount > 0) s.withPricing += 1; else s.noData += 1;
+    if (r.magento_price) s.withSalesPrice += 1;
+
+    switch (r.margin_status) {
+      case 'healthy': s.healthy += 1; break;
+      case 'warning': s.warning += 1; break;
+      case 'loss': s.loss += 1; break;
+      case 'no_magento_price': s.noSalesPrice += 1; break;
+    }
+
+    if (r.margin_percentage != null) {
+      marginSum += r.margin_percentage;
+      marginCount += 1;
+    }
+    if (r.magento_price != null && r.best_price != null) {
+      s.totalMarginValue += (parseFloat(r.magento_price) - parseFloat(r.best_price));
+    }
+  });
+
+  if (marginCount > 0) s.averageMargin = marginSum / marginCount;
+  return s;
+}
+
+/** Per-supplier coverage / competitiveness stats derived from the exported rows. */
+function buildSupplierStats(rows, suppliers) {
+  const stats = suppliers.map(s => ({
+    code: s.code,
+    name: s.name,
+    quoted: 0,
+    wins: 0,
+    priceSum: 0,
+    premiumSum: 0,
+    premiumCount: 0,
+  }));
+  const byCode = new Map(stats.map(s => [s.code, s]));
+
+  rows.forEach(r => {
+    const prices = r.supplier_prices || {};
+    Object.entries(prices).forEach(([code, price]) => {
+      const stat = byCode.get(code);
+      if (!stat) return;
+      stat.quoted += 1;
+      stat.priceSum += parseFloat(price) || 0;
+      if (r.best_price) {
+        stat.premiumSum += ((parseFloat(price) - r.best_price) / r.best_price) * 100;
+        stat.premiumCount += 1;
+      }
+    });
+    if (r.winning_supplier && byCode.has(r.winning_supplier)) {
+      byCode.get(r.winning_supplier).wins += 1;
+    }
+  });
+
+  return stats.map(s => ({
+    ...s,
+    avgPrice: s.quoted > 0 ? s.priceSum / s.quoted : null,
+    avgPremium: s.premiumCount > 0 ? s.premiumSum / s.premiumCount : null,
+    winRate: s.quoted > 0 ? (s.wins / s.quoted) * 100 : null,
+  }));
+}
+
+// ── Sheet builders ──────────────────────────────────────────────────────────
+
+function buildSummarySheet(wb, rows, suppliers, summary, supplierStats, generatedAt, filterLabel) {
+  const ws = wb.addWorksheet('Summary', {
+    views: [{ showGridLines: false }],
+    pageSetup: { orientation: 'portrait', fitToPage: true, fitToWidth: 1, fitToHeight: 0 },
+  });
+
+  ws.columns = [
+    { width: 34 }, { width: 16 }, { width: 16 }, { width: 18 }, { width: 18 },
+  ];
+
+  xlWriteTitle(
+    ws, 1, 5,
+    'Product Sourcing — Analysis Report',
+    `Generated ${generatedAt.toLocaleString()}${filterLabel ? `  ·  Filter: “${filterLabel}”` : ''}`
+  );
+
+  let row = 4;
+  xlWriteSection(ws, row, 5, 'Portfolio Overview');
+  row += 1;
+
+  xlWriteHeader(ws, row, ['Metric', 'Value', '% of Products']);
+  row += 1;
+
+  const pct = (n) => (summary.total > 0 ? (n / summary.total) * 100 : null);
+  const metrics = [
+    ['Total products', summary.total, null, null],
+    ['Products with supplier pricing', summary.withPricing, pct(summary.withPricing), null],
+    ['Products with a sales price', summary.withSalesPrice, pct(summary.withSalesPrice), null],
+    ['Healthy margin (≥20%)', summary.healthy, pct(summary.healthy), 'healthy'],
+    ['Low margin (0–20%)', summary.warning, pct(summary.warning), 'warning'],
+    ['Loss makers (<0%)', summary.loss, pct(summary.loss), 'loss'],
+    ['Priced but no sales price', summary.noSalesPrice, pct(summary.noSalesPrice), 'muted'],
+    ['No supplier data', summary.noData, pct(summary.noData), 'muted'],
+  ];
+
+  metrics.forEach(([label, value, share, tone], i) => {
+    const r = ws.getRow(row);
+    const band = i % 2 === 1;
+
+    const labelCell = ws.getCell(row, 1);
+    labelCell.value = label;
+    labelCell.font = { name: 'Calibri', size: 11 };
+
+    const valueCell = ws.getCell(row, 2);
+    valueCell.value = value;
+    valueCell.numFmt = '#,##0';
+    valueCell.font = { name: 'Calibri', size: 11, bold: true };
+    valueCell.alignment = { horizontal: 'center' };
+
+    const shareCell = ws.getCell(row, 3);
+    shareCell.value = share;
+    shareCell.numFmt = FMT_PCT;
+    shareCell.alignment = { horizontal: 'center' };
+
+    [1, 2, 3].forEach(c => {
+      const cell = ws.getCell(row, c);
+      cell.border = XL_THIN_BORDER;
+      if (band) cell.fill = xlFill(XL.bandLight);
+    });
+
+    if (tone && tone !== 'muted') {
+      const [bg, fg] = xlMarginStyle(tone);
+      [1, 2, 3].forEach(c => {
+        ws.getCell(row, c).fill = xlFill(bg);
+        ws.getCell(row, c).font = { ...ws.getCell(row, c).font, color: { argb: fg } };
+      });
+    }
+
+    r.height = 18;
+    row += 1;
+  });
+
+  // Headline figures
+  row += 1;
+  xlWriteSection(ws, row, 5, 'Margin Position');
+  row += 1;
+  xlWriteHeader(ws, row, ['Metric', 'Value']);
+  row += 1;
+
+  const headline = [
+    ['Average margin across priced products', summary.averageMargin, FMT_PCT],
+    ['Total margin value (sales − best cost)', summary.totalMarginValue, FMT_GBP],
+    ['Products needing review (low margin + loss)', summary.warning + summary.loss, '#,##0'],
+  ];
+  headline.forEach(([label, value, fmt], i) => {
+    ws.getCell(row, 1).value = label;
+    const v = ws.getCell(row, 2);
+    v.value = value;
+    v.numFmt = fmt;
+    v.font = { name: 'Calibri', size: 11, bold: true };
+    v.alignment = { horizontal: 'center' };
+    [1, 2].forEach(c => {
+      const cell = ws.getCell(row, c);
+      cell.border = XL_THIN_BORDER;
+      if (i % 2 === 1) cell.fill = xlFill(XL.bandLight);
+    });
+    ws.getRow(row).height = 18;
+    row += 1;
+  });
+
+  // Supplier wins
+  row += 1;
+  xlWriteSection(ws, row, 5, 'Best-Price Wins by Supplier');
+  row += 1;
+  xlWriteHeader(ws, row, ['Supplier', 'Code', 'Wins', 'Win Share', 'SKUs Quoted']);
+  row += 1;
+
+  const totalWins = supplierStats.reduce((acc, s) => acc + s.wins, 0);
+  const ranked = [...supplierStats].sort((a, b) => b.wins - a.wins || a.code.localeCompare(b.code));
+
+  ranked.forEach((s, i) => {
+    ws.getCell(row, 1).value = s.name;
+    ws.getCell(row, 2).value = s.code;
+    ws.getCell(row, 3).value = s.wins;
+    ws.getCell(row, 4).value = totalWins > 0 ? (s.wins / totalWins) * 100 : null;
+    ws.getCell(row, 5).value = s.quoted;
+
+    ws.getCell(row, 3).numFmt = '#,##0';
+    ws.getCell(row, 4).numFmt = FMT_PCT;
+    ws.getCell(row, 5).numFmt = '#,##0';
+
+    [1, 2, 3, 4, 5].forEach(c => {
+      const cell = ws.getCell(row, c);
+      cell.border = XL_THIN_BORDER;
+      if (c >= 2) cell.alignment = { horizontal: 'center' };
+      if (i % 2 === 1) cell.fill = xlFill(XL.bandLight);
+    });
+
+    ws.getRow(row).height = 18;
+    row += 1;
+  });
+
+  if (ranked.length === 0) {
+    ws.mergeCells(row, 1, row, 5);
+    ws.getCell(row, 1).value = 'No active suppliers.';
+    ws.getCell(row, 1).font = { name: 'Calibri', size: 11, italic: true, color: { argb: XL.mutedFg } };
+  }
+
+  return ws;
+}
+
+function buildAnalysisSheet(wb, rows) {
+  const ws = wb.addWorksheet('Price Analysis', {
+    views: [{ state: 'frozen', xSplit: 1, ySplit: 3 }],
+    pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0 },
+  });
+
+  const COLUMNS = [
+    { header: 'SKU',              width: 22 },
+    { header: 'Item ID',          width: 12 },
+    { header: 'Product',          width: 42 },
+    { header: 'Brand',            width: 16 },
+    { header: 'Category',         width: 20 },
+    { header: 'Status',           width: 14 },
+    { header: 'Sales Price',      width: 14 },
+    { header: 'Best Cost',        width: 13 },
+    { header: 'Best Supplier',    width: 16 },
+    { header: 'Cost Updated',     width: 14 },
+    { header: 'Margin %',         width: 11 },
+    { header: 'Margin Value',     width: 14 },
+    { header: 'Margin Status',    width: 18 },
+    { header: 'Suppliers Quoted', width: 16 },
+  ];
+  ws.columns = COLUMNS.map(c => ({ width: c.width }));
+
+  xlWriteTitle(ws, 1, COLUMNS.length, 'Price Analysis', `${rows.length.toLocaleString()} products · costs normalised to GBP`);
+  xlWriteHeader(ws, 3, COLUMNS.map(c => c.header));
+
+  rows.forEach((r, i) => {
+    const rowNum = 4 + i;
+    const salesPrice = r.magento_price != null ? parseFloat(r.magento_price) : null;
+    const bestCost = r.best_price != null ? parseFloat(r.best_price) : null;
+    const marginValue = salesPrice != null && bestCost != null ? salesPrice - bestCost : null;
+
+    const values = [
+      r.sku || '',
+      r.item_id || '',
+      r.product_name || '',
+      r.brand || '',
+      r.category || '',
+      r.status || 'Unknown',
+      salesPrice,
+      bestCost,
+      r.winning_supplier || '',
+      xlDate(r.best_price_updated_at),
+      r.margin_percentage != null ? r.margin_percentage : null,
+      marginValue,
+      MARGIN_STATUS_LABELS[r.margin_status] || r.margin_status || '',
+      Object.keys(r.supplier_prices || {}).length,
+    ];
+
+    values.forEach((val, ci) => {
+      const cell = ws.getCell(rowNum, ci + 1);
+      cell.value = val;
+      cell.border = XL_THIN_BORDER;
+      cell.font = { name: 'Calibri', size: 11 };
+      cell.alignment = { vertical: 'middle' };
+      if (i % 2 === 1) cell.fill = xlFill(XL.bandLight);
+    });
+
+    ws.getCell(rowNum, 1).font = { name: 'Calibri', size: 11, bold: true };
+    ws.getCell(rowNum, 7).numFmt = FMT_GBP;
+    ws.getCell(rowNum, 8).numFmt = FMT_GBP;
+    ws.getCell(rowNum, 10).numFmt = FMT_DATE;
+    ws.getCell(rowNum, 10).alignment = { horizontal: 'center', vertical: 'middle' };
+    ws.getCell(rowNum, 11).numFmt = FMT_PCT;
+    ws.getCell(rowNum, 12).numFmt = FMT_GBP;
+    ws.getCell(rowNum, 9).alignment = { horizontal: 'center', vertical: 'middle' };
+    ws.getCell(rowNum, 14).alignment = { horizontal: 'center', vertical: 'middle' };
+
+    // Colour the margin block by health so problems stand out at a glance.
+    const [bg, fg] = xlMarginStyle(r.margin_status);
+    [11, 12, 13].forEach(c => {
+      const cell = ws.getCell(rowNum, c);
+      cell.fill = xlFill(bg);
+      cell.font = { name: 'Calibri', size: 11, bold: c === 11, color: { argb: fg } };
+    });
+    ws.getCell(rowNum, 11).alignment = { horizontal: 'center', vertical: 'middle' };
+    ws.getCell(rowNum, 13).alignment = { horizontal: 'center', vertical: 'middle' };
+
+    ws.getRow(rowNum).height = 17;
+  });
+
+  if (rows.length > 0) {
+    ws.autoFilter = {
+      from: { row: 3, column: 1 },
+      to: { row: 3 + rows.length, column: COLUMNS.length },
+    };
+  }
+
+  return ws;
+}
+
+function buildMatrixSheet(wb, rows, suppliers) {
+  const ws = wb.addWorksheet('Supplier Matrix', {
+    views: [{ state: 'frozen', xSplit: 1, ySplit: 3 }],
+    pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0 },
+  });
+
+  const headers = ['SKU', 'Product', 'Sales Price', ...suppliers.map(s => s.code), 'Best Cost', 'Best Supplier'];
+  ws.columns = [
+    { width: 22 },
+    { width: 42 },
+    { width: 13 },
+    ...suppliers.map(() => ({ width: 13 })),
+    { width: 13 },
+    { width: 16 },
+  ];
+
+  xlWriteTitle(ws, 1, headers.length, 'Supplier Cost Matrix', 'All supplier costs normalised to GBP · best cost per SKU highlighted');
+  xlWriteHeader(ws, 3, headers);
+
+  const firstSupplierCol = 4;
+  const bestCostCol = firstSupplierCol + suppliers.length;
+  const bestSupplierCol = bestCostCol + 1;
+
+  rows.forEach((r, i) => {
+    const rowNum = 4 + i;
+    const prices = r.supplier_prices || {};
+
+    ws.getCell(rowNum, 1).value = r.sku || '';
+    ws.getCell(rowNum, 2).value = r.product_name || '';
+    ws.getCell(rowNum, 3).value = r.magento_price != null ? parseFloat(r.magento_price) : null;
+
+    suppliers.forEach((s, si) => {
+      const col = firstSupplierCol + si;
+      const price = prices[s.code];
+      const cell = ws.getCell(rowNum, col);
+      cell.value = price != null ? parseFloat(price) : null;
+      if (price != null && s.code === r.winning_supplier) {
+        cell.fill = xlFill(XL.bestBg);
+        cell.font = { name: 'Calibri', size: 11, bold: true, color: { argb: XL.bestFg } };
+      }
+    });
+
+    ws.getCell(rowNum, bestCostCol).value = r.best_price != null ? parseFloat(r.best_price) : null;
+    ws.getCell(rowNum, bestSupplierCol).value = r.winning_supplier || '';
+
+    for (let c = 1; c <= headers.length; c++) {
+      const cell = ws.getCell(rowNum, c);
+      cell.border = XL_THIN_BORDER;
+      cell.alignment = { vertical: 'middle', horizontal: c <= 2 ? 'left' : 'center' };
+      if (!cell.font) cell.font = { name: 'Calibri', size: 11 };
+      if (i % 2 === 1 && !cell.fill) cell.fill = xlFill(XL.bandLight);
+      if (c >= 3 && c <= bestCostCol) cell.numFmt = FMT_GBP;
+    }
+
+    ws.getCell(rowNum, 1).font = { name: 'Calibri', size: 11, bold: true };
+    ws.getCell(rowNum, bestCostCol).font = { name: 'Calibri', size: 11, bold: true };
+    ws.getRow(rowNum).height = 17;
+  });
+
+  if (rows.length > 0) {
+    ws.autoFilter = {
+      from: { row: 3, column: 1 },
+      to: { row: 3 + rows.length, column: headers.length },
+    };
+  }
+
+  return ws;
+}
+
+function buildSupplierSheet(wb, supplierStats) {
+  const ws = wb.addWorksheet('Supplier Performance', {
+    views: [{ state: 'frozen', ySplit: 3 }],
+    pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0 },
+  });
+
+  const COLUMNS = [
+    { header: 'Supplier',            width: 30 },
+    { header: 'Code',                width: 12 },
+    { header: 'SKUs Quoted',         width: 14 },
+    { header: 'Best-Price Wins',     width: 16 },
+    { header: 'Win Rate',            width: 12 },
+    { header: 'Avg Quoted Cost',     width: 17 },
+    { header: 'Avg Premium vs Best', width: 20 },
+  ];
+  ws.columns = COLUMNS.map(c => ({ width: c.width }));
+
+  xlWriteTitle(ws, 1, COLUMNS.length, 'Supplier Performance', 'Coverage and competitiveness across the exported products');
+  xlWriteHeader(ws, 3, COLUMNS.map(c => c.header));
+
+  const ranked = [...supplierStats].sort((a, b) => b.wins - a.wins || b.quoted - a.quoted);
+
+  ranked.forEach((s, i) => {
+    const rowNum = 4 + i;
+    const values = [s.name, s.code, s.quoted, s.wins, s.winRate, s.avgPrice, s.avgPremium];
+
+    values.forEach((val, ci) => {
+      const cell = ws.getCell(rowNum, ci + 1);
+      cell.value = val;
+      cell.border = XL_THIN_BORDER;
+      cell.font = { name: 'Calibri', size: 11 };
+      cell.alignment = { vertical: 'middle', horizontal: ci === 0 ? 'left' : 'center' };
+      if (i % 2 === 1) cell.fill = xlFill(XL.bandLight);
+    });
+
+    ws.getCell(rowNum, 3).numFmt = '#,##0';
+    ws.getCell(rowNum, 4).numFmt = '#,##0';
+    ws.getCell(rowNum, 5).numFmt = FMT_PCT;
+    ws.getCell(rowNum, 6).numFmt = FMT_GBP;
+    ws.getCell(rowNum, 7).numFmt = '+0.0"%";-0.0"%";0.0"%"';
+    ws.getRow(rowNum).height = 17;
+  });
+
+  return ws;
+}
+
+/**
+ * Export the sourcing analysis as a formatted Excel workbook.
+ *
+ * Pulls the full analysis dataset (the same data behind the Analysis Dashboard)
+ * and lays it out across four sheets: Summary, Price Analysis, Supplier Matrix
+ * and Supplier Performance. Honours the matrix search box when one is active.
+ */
+async function exportMatrixExcel() {
+  const btn = document.getElementById('btn-export-excel');
+  const originalHtml = btn?.innerHTML;
+
   try {
-    showToast('Preparing CSV export...', 'info');
-    
-    // Fetch with authentication using correct token source
-    const token = getToken();
-    if (!token) {
-      showToast('Please log in to export data', 'error');
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Exporting…';
+    }
+    showToast('Building Excel report…', 'info');
+
+    await loadScript('https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js');
+    const ExcelJS = window.ExcelJS;
+    if (!ExcelJS) throw new Error('ExcelJS failed to load');
+
+    // Full dataset — the analysis endpoint already returns everything in one call.
+    const data = await getAnalysisDashboard({
+      page: 1,
+      perPage: 100000,
+      sortBy: 'sku',
+      sortOrder: 'asc'
+    });
+
+    let rows = data.products || [];
+    const suppliers = data.suppliers || [];
+
+    // Apply the matrix search so the export matches what the user is looking at.
+    const filter = (state.matrixSearch || '').trim();
+    if (filter) {
+      const q = filter.toLowerCase();
+      rows = rows.filter(r =>
+        (r.sku || '').toLowerCase().includes(q) ||
+        (r.product_name || '').toLowerCase().includes(q) ||
+        String(r.item_id || '').toLowerCase().includes(q)
+      );
+    }
+
+    if (rows.length === 0) {
+      showToast('Nothing to export for the current filter', 'error');
       return;
     }
-    
-    const response = await fetch('/api/v1/inventory/sourcing/export/csv', {
-      method: 'GET',
-      headers: { 'Authorization': `Bearer ${token}` }
+
+    const generatedAt = new Date();
+    const summary = buildExportSummary(rows);
+    const supplierStats = buildSupplierStats(rows, suppliers);
+
+    const wb = new ExcelJS.Workbook();
+    wb.creator = 'RM365 Product Sourcing';
+    wb.created = generatedAt;
+
+    buildSummarySheet(wb, rows, suppliers, summary, supplierStats, generatedAt, filter);
+    buildAnalysisSheet(wb, rows);
+    buildMatrixSheet(wb, rows, suppliers);
+    buildSupplierSheet(wb, supplierStats);
+
+    const buffer = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buffer], {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     });
-    
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.detail || 'Export failed');
-    }
-    
-    // Create blob and download
-    const blob = await response.blob();
-    const url = window.URL.createObjectURL(blob);
+    const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'supplier_matrix.csv';
+    a.download = `sourcing-analysis-${generatedAt.toISOString().slice(0, 10)}.xlsx`;
     document.body.appendChild(a);
     a.click();
-    window.URL.revokeObjectURL(url);
     document.body.removeChild(a);
-    
-    showToast('CSV exported successfully', 'success');
+    URL.revokeObjectURL(url);
+
+    showToast(`Exported ${rows.length.toLocaleString()} products to Excel`, 'success');
   } catch (error) {
-    console.error('[Sourcing] Export error:', error);
-    showToast('Export failed', 'error');
-  }
-}
-
-// Store pending import file for confirmation
-let pendingImportFile = null;
-
-/**
- * Handle file selection - show confirmation modal
- */
-function handleImportFileSelect(e) {
-  const file = e.target.files?.[0];
-  if (!file) return;
-  
-  // Store file for later
-  pendingImportFile = file;
-  
-  // Show filename in modal
-  const filenameEl = document.getElementById('csv-import-filename');
-  if (filenameEl) {
-    filenameEl.textContent = file.name;
-  }
-  
-  // Open confirmation modal
-  const modal = document.getElementById('modal-confirm-csv-import');
-  if (modal) {
-    modal.classList.add('active');
-  }
-}
-
-/**
- * Close CSV import confirmation modal
- */
-function closeCsvImportModal() {
-  const modal = document.getElementById('modal-confirm-csv-import');
-  if (modal) {
-    modal.classList.remove('active');
-  }
-  
-  // Reset file input
-  const fileInput = document.getElementById('import-file-input');
-  if (fileInput) {
-    fileInput.value = '';
-  }
-  pendingImportFile = null;
-}
-
-/**
- * Confirm CSV import - proceed with actual import
- */
-async function confirmCsvImport() {
-  if (!pendingImportFile) {
-    closeCsvImportModal();
-    return;
-  }
-  
-  // Close confirmation modal
-  const confirmModal = document.getElementById('modal-confirm-csv-import');
-  if (confirmModal) {
-    confirmModal.classList.remove('active');
-  }
-  
-  const file = pendingImportFile;
-  pendingImportFile = null;
-  
-  try {
-    showToast('Importing CSV...', 'info');
-    
-    // Create FormData for file upload
-    const formData = new FormData();
-    formData.append('file', file);
-    
-    // Use correct token source
-    const token = getToken();
-    if (!token) {
-      showToast('Please log in to import data', 'error');
-      return;
+    console.error('[Sourcing] Excel export error:', error);
+    showToast('Excel export failed', 'error');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      if (originalHtml) btn.innerHTML = originalHtml;
     }
-    
-    const response = await fetch('/api/v1/inventory/sourcing/import/csv', {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${token}` },
-      body: formData
-    });
-    
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.detail || 'Import failed');
-    }
-    
-    const result = await response.json();
-    
-    // Show results modal
-    showCsvImportResults(result, file.name);
-    
-    // Log details to console for debugging
-    if (result.skipped_sku_list?.length > 0) {
-      console.log('[Sourcing] Skipped invalid SKUs:', result.skipped_sku_list);
-    }
-    if (result.error_details?.length > 0) {
-      console.log('[Sourcing] Import errors:', result.error_details);
-    }
-    
-    await loadSupplierMatrix();
-    
-  } catch (error) {
-    console.error('[Sourcing] Import error:', error);
-    showToast('Import failed: ' + error.message, 'error');
-  }
-  
-  // Reset file input
-  const fileInput = document.getElementById('import-file-input');
-  if (fileInput) {
-    fileInput.value = '';
-  }
-}
-
-/**
- * Show CSV import results modal
- */
-function showCsvImportResults(result, filename) {
-  const contentEl = document.getElementById('csv-import-results-content');
-  if (!contentEl) return;
-  
-  const hasErrors = (result.errors || 0) > 0;
-  const hasSkipped = (result.skipped_invalid_skus || 0) > 0;
-  
-  // Build results HTML
-  let html = `
-    <div style="text-align: center; margin-bottom: 1.5rem;">
-      <div style="font-size: 3rem; color: ${hasErrors ? 'var(--warning)' : 'var(--success)'}; margin-bottom: 0.5rem;">
-        <i class="fas ${hasErrors ? 'fa-exclamation-circle' : 'fa-check-circle'}"></i>
-      </div>
-      <p style="font-weight: 600; font-size: 1.1rem;">${hasErrors ? 'Import Completed with Warnings' : 'Import Successful!'}</p>
-      <p class="help-text">${filename}</p>
-    </div>
-    
-    <div style="background: var(--bg-light); border-radius: 8px; padding: 1rem;">
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-        <div style="text-align: center; padding: 0.75rem; background: var(--bg); border-radius: 6px;">
-          <div style="font-size: 1.5rem; font-weight: 700; color: var(--success);">${result.imported || 0}</div>
-          <div style="font-size: 0.8rem; color: var(--text-muted);">Updated</div>
-        </div>
-        <div style="text-align: center; padding: 0.75rem; background: var(--bg); border-radius: 6px;">
-          <div style="font-size: 1.5rem; font-weight: 700; color: var(--text);">${result.processed || 0}</div>
-          <div style="font-size: 0.8rem; color: var(--text-muted);">Processed</div>
-        </div>
-      </div>
-  `;
-  
-  if (hasSkipped || hasErrors) {
-    html += `
-      <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--bg-dark);">
-    `;
-    
-    if (hasSkipped) {
-      html += `
-        <div style="display: flex; align-items: center; gap: 0.5rem; color: var(--warning); margin-bottom: 0.5rem;">
-          <i class="fas fa-forward"></i>
-          <span><strong>${result.skipped_invalid_skus}</strong> SKUs skipped (not in system)</span>
-        </div>
-      `;
-    }
-    
-    if (hasErrors) {
-      html += `
-        <div style="display: flex; align-items: center; gap: 0.5rem; color: var(--error);">
-          <i class="fas fa-times-circle"></i>
-          <span><strong>${result.errors}</strong> errors encountered</span>
-        </div>
-      `;
-    }
-    
-    html += `</div>`;
-  }
-  
-  html += `</div>`;
-  
-  contentEl.innerHTML = html;
-  
-  // Update modal header icon based on result
-  const modalHeader = document.querySelector('#modal-csv-import-results .modal-header h3');
-  if (modalHeader) {
-    modalHeader.innerHTML = hasErrors 
-      ? '<i class="fas fa-exclamation-circle"></i> Import Complete'
-      : '<i class="fas fa-check-circle"></i> Import Complete';
-  }
-  
-  // Show modal
-  const modal = document.getElementById('modal-csv-import-results');
-  if (modal) {
-    modal.classList.add('active');
-  }
-}
-
-/**
- * Close CSV results modal
- */
-function closeCsvResultsModal() {
-  const modal = document.getElementById('modal-csv-import-results');
-  if (modal) {
-    modal.classList.remove('active');
   }
 }
 

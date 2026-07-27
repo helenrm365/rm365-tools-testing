@@ -299,45 +299,6 @@ export async function getAnalysisDashboard(options = {}) {
 }
 
 // ============================================================================
-// IMPORT/EXPORT
-// ============================================================================
-
-/**
- * Export supplier matrix as CSV
- * @returns {Promise<Blob>}
- */
-export async function exportMatrixCSV() {
-  try {
-    const response = await http(`${BASE_PATH}/export/csv`, { method: 'GET' });
-    return response;
-  } catch (error) {
-    console.error('[SourcingApi] Error exporting CSV:', error);
-    throw error;
-  }
-}
-
-/**
- * Import supplier matrix from CSV
- * @param {File} file - CSV file to import
- * @returns {Promise<{status: string, imported: number, errors: number}>}
- */
-export async function importMatrixCSV(file) {
-  try {
-    const formData = new FormData();
-    formData.append('file', file);
-    
-    // Use http directly with FormData (don't set Content-Type, browser will set it with boundary)
-    return await http(`${BASE_PATH}/import/csv`, { 
-      method: 'POST',
-      body: formData
-    });
-  } catch (error) {
-    console.error('[SourcingApi] Error importing CSV:', error);
-    throw error;
-  }
-}
-
-// ============================================================================
 // UTILITY FUNCTIONS
 // ============================================================================
 
