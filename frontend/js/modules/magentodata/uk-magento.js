@@ -12,7 +12,7 @@ import {
   hasActiveFullDataFilters,
   describeFullDataFilters,
   filtersFilenameSlug
-} from './full-data-filters.js?v=4';
+} from './full-data-filters.js?v=5';
 
 let currentPage = 0;
 const pageSize = 100; // Display 100 records per page
@@ -869,6 +869,18 @@ function displayCurrentPage() {
 }
 
 /**
+ * Reset the search box and its state without triggering a reload - the caller
+ * decides how to refresh so removing a chip only costs one request.
+ */
+function clearSearchTerm() {
+  const input = document.getElementById('magentoSearchInput');
+  if (input) input.value = '';
+  currentSearch = '';
+  isSearchMode = false;
+  currentPage = 0;
+}
+
+/**
  * Show/hide the Full Data filter button and the active filter summary bar
  */
 function updateFullDataFilterUI() {
@@ -879,7 +891,16 @@ function updateFullDataFilterUI() {
 
   // Chips only make sense in Full Data view; null collapses the bar
   renderFullDataFilterBar(viewMode === 'full' ? fullDataFilters : null, {
-    onChange: applyFullDataFilters
+    search: currentSearch,
+    onChange: applyFullDataFilters,
+    onClearSearch: () => {
+      clearSearchTerm();
+      loadMagentoData();
+    },
+    onClearAll: () => {
+      clearSearchTerm();
+      applyFullDataFilters(emptyFullDataFilters());
+    }
   });
 
   // Drop any control group left with no visible buttons in this view

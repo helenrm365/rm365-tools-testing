@@ -79,17 +79,24 @@ function dateChipLabel(filters) {
 }
 
 /**
- * Build the removable chips describing the active filters.
+ * Build the removable chips describing what is narrowing the table.
+ *
+ * The search box is part of the query the same as the filters are, so it gets
+ * a chip too - matching the staff directory.
  *
  * Statuses render as whichever side is shorter: picking 2 of 12 shows two
  * "Status" chips, dropping 1 of 12 shows a single "Excluding" chip. Either way
  * removing a chip does the obvious thing.
  * @returns {Array<{key: string, kind: string, label: string}>}
  */
-export function getFullDataFilterChips(filters) {
-  if (!hasActiveFullDataFilters(filters)) return [];
-
+export function getFullDataFilterChips(filters, search = '') {
   const chips = [];
+
+  const term = (search || '').trim();
+  if (term) chips.push({ key: 'search', kind: 'Search', label: `"${term}"` });
+
+  if (!hasActiveFullDataFilters(filters)) return chips;
+
   const dateLabel = dateChipLabel(filters);
   if (dateLabel) chips.push({ key: 'date', kind: 'Date', label: dateLabel });
 
@@ -163,15 +170,21 @@ export function syncControlGroups() {
  * Render the active filter chip bar. Expects the markup used by the sales
  * pages (#activeFilters > .reveal-clip > .active-filters-bar).
  * @param {object|null} filters - pass null to collapse the bar
- * @param {{onChange: function}} handlers - called with the new filter state
+ * @param {object} handlers
+ * @param {string} [handlers.search] - current search term, shown as its own chip
+ * @param {function} [handlers.onChange] - called with the new filter state
+ * @param {function} [handlers.onClearSearch] - called when the search chip is removed
+ * @param {function} [handlers.onClearAll] - called by "Clear all" (search + filters)
  */
-export function renderFullDataFilterBar(filters, { onChange } = {}) {
+export function renderFullDataFilterBar(filters, { search = '', onChange, onClearSearch, onClearAll } = {}) {
   const bar = document.getElementById('activeFilters');
   const chipsEl = document.getElementById('filterChips');
   const clearBtn = document.getElementById('clearAllFiltersBtn');
   if (!bar || !chipsEl) return;
 
-  const chips = filters ? getFullDataFilterChips(filters) : [];
+  // filters may be null outside Full Data view - search still applies there,
+  // so the bar keeps showing the search chip on its own
+  const chips = getFullDataFilterChips(filters, search);
 
   if (chips.length === 0) {
     // Leave the old chips in the DOM so they stay visible while the bar
@@ -193,15 +206,24 @@ export function renderFullDataFilterBar(filters, { onChange } = {}) {
 
   chipsEl.querySelectorAll('.chip-remove').forEach(btn => {
     btn.addEventListener('click', () => {
-      if (onChange) onChange(removeFullDataFilter(filters, btn.dataset.filterKey));
+      const key = btn.dataset.filterKey;
+      if (key === 'search') {
+        if (onClearSearch) onClearSearch();
+      } else if (onChange) {
+        onChange(removeFullDataFilter(filters, key));
+      }
     });
   });
 
-  if (clearBtn && onChange) {
+  if (clearBtn) {
     // Replace the node to drop listeners from the previous render
     const fresh = clearBtn.cloneNode(true);
     clearBtn.parentNode.replaceChild(fresh, clearBtn);
-    fresh.addEventListener('click', () => onChange(emptyFullDataFilters()));
+    // One handler clears search and filters together so the table reloads once
+    fresh.addEventListener('click', () => {
+      if (onClearAll) onClearAll();
+      else if (onChange) onChange(emptyFullDataFilters());
+    });
   }
 
   bar.classList.add('visible');
