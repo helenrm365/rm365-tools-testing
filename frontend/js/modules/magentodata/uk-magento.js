@@ -14,7 +14,7 @@ import {
   hasActiveFullDataFilters,
   describeFullDataFilters,
   filtersFilenameSlug
-} from './full-data-filters.js?v=5';
+} from './full-data-filters.js?v=6';
 
 let currentPage = 0;
 const pageSize = 100; // Display 100 records per page

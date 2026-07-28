@@ -1,7 +1,7 @@
 // frontend/js/modules/magentodata/full-data-filters.js
 // Advanced filters for the Full Data view: date range + order status.
 // Shared by the All / UK / FR / NL sales data pages.
-import { getAvailableStatuses } from '../../services/api/magentoDataApi.js?v=9';
+import { getAvailableStatuses, getShippingMethods } from '../../services/api/magentoDataApi.js?v=9';
 import { initDatePicker } from '../../ui/datePicker.js';
 import { showToast } from '../../ui/toast.js';
 
@@ -22,7 +22,16 @@ const DATE_PRESETS = [
  * @returns {{preset: string, dateFrom: string, dateTo: string, statuses: string[], availableStatuses: string[]}}
  */
 export function emptyFullDataFilters() {
-  return { preset: 'all', dateFrom: '', dateTo: '', statuses: [], availableStatuses: [] };
+  return {
+    preset: 'all',
+    dateFrom: '',
+    dateTo: '',
+    statuses: [],
+    availableStatuses: [],
+    shippingMethods: [],
+    availableShippingMethods: [],
+    uniqueCustomers: false
+  };
 }
 
 /**
@@ -30,7 +39,13 @@ export function emptyFullDataFilters() {
  */
 export function hasActiveFullDataFilters(filters) {
   if (!filters) return false;
-  return Boolean(filters.dateFrom || filters.dateTo || (filters.statuses && filters.statuses.length > 0));
+  return Boolean(
+    filters.dateFrom ||
+    filters.dateTo ||
+    (filters.statuses && filters.statuses.length > 0) ||
+    (filters.shippingMethods && filters.shippingMethods.length > 0) ||
+    filters.uniqueCustomers
+  );
 }
 
 /**
@@ -53,6 +68,14 @@ export function describeFullDataFilters(filters) {
 
   if (filters.statuses && filters.statuses.length > 0) {
     parts.push(filters.statuses.join(', '));
+  }
+
+  if (filters.shippingMethods && filters.shippingMethods.length > 0) {
+    parts.push(filters.shippingMethods.join(', '));
+  }
+
+  if (filters.uniqueCustomers) {
+    parts.push('one per customer & product');
   }
 
   return parts.join(' · ');
@@ -100,27 +123,45 @@ export function getFullDataFilterChips(filters, search = '') {
   const dateLabel = dateChipLabel(filters);
   if (dateLabel) chips.push({ key: 'date', kind: 'Date', label: dateLabel });
 
-  const statuses = filters.statuses || [];
-  if (statuses.length > 0) {
-    const available = filters.availableStatuses || [];
-    const selected = new Set(statuses.map(s => s.toLowerCase()));
-    const excluded = available.filter(s => !selected.has(String(s).toLowerCase()));
+  pushSelectionChips(chips, filters.statuses, filters.availableStatuses, 'status', 'Status');
+  pushSelectionChips(chips, filters.shippingMethods, filters.availableShippingMethods, 'shipping', 'Shipping');
 
-    if (excluded.length > 0 && excluded.length < statuses.length) {
-      excluded.forEach(s => chips.push({ key: `exclude:${s}`, kind: 'Excluding', label: s }));
-    } else {
-      statuses.forEach(s => chips.push({ key: `status:${s}`, kind: 'Status', label: s }));
-    }
+  if (filters.uniqueCustomers) {
+    chips.push({ key: 'uniqueCustomers', kind: 'Showing', label: 'One order per customer & product' });
   }
 
   return chips;
 }
 
 /**
+ * Add chips for a multi-select filter, rendering whichever side is shorter:
+ * the picked values, or the dropped ones as "Excluding" chips.
+ */
+function pushSelectionChips(chips, selectedValues, availableValues, keyPrefix, kind) {
+  const selected = selectedValues || [];
+  if (selected.length === 0) return;
+
+  const available = availableValues || [];
+  const selectedSet = new Set(selected.map(v => v.toLowerCase()));
+  const excluded = available.filter(v => !selectedSet.has(String(v).toLowerCase()));
+
+  if (excluded.length > 0 && excluded.length < selected.length) {
+    excluded.forEach(v => chips.push({ key: `${keyPrefix}-exclude:${v}`, kind: 'Excluding', label: v }));
+  } else {
+    selected.forEach(v => chips.push({ key: `${keyPrefix}:${v}`, kind, label: v }));
+  }
+}
+
+/**
  * Remove one chip, returning the resulting filter state.
  */
 export function removeFullDataFilter(filters, key) {
-  const next = { ...emptyFullDataFilters(), ...filters, statuses: [...(filters.statuses || [])] };
+  const next = {
+    ...emptyFullDataFilters(),
+    ...filters,
+    statuses: [...(filters.statuses || [])],
+    shippingMethods: [...(filters.shippingMethods || [])]
+  };
 
   if (key === 'date') {
     next.preset = 'all';
@@ -129,20 +170,26 @@ export function removeFullDataFilter(filters, key) {
     return next;
   }
 
-  if (key.startsWith('status:')) {
-    const value = key.slice('status:'.length).toLowerCase();
-    next.statuses = next.statuses.filter(s => s.toLowerCase() !== value);
+  if (key === 'uniqueCustomers') {
+    next.uniqueCustomers = false;
     return next;
   }
 
-  if (key.startsWith('exclude:')) {
-    // Putting an excluded status back; once everything is back it's no filter
-    const value = key.slice('exclude:'.length);
-    next.statuses.push(value);
-    if (next.statuses.length >= (next.availableStatuses || []).length) {
-      next.statuses = [];
-    }
-    return next;
+  const drop = (list, value) => list.filter(v => v.toLowerCase() !== value.toLowerCase());
+  // Adding a value back; once everything is back it stops being a filter at all
+  const restore = (list, value, available) => {
+    const merged = [...list, value];
+    return merged.length >= (available || []).length ? [] : merged;
+  };
+
+  if (key.startsWith('status:')) {
+    next.statuses = drop(next.statuses, key.slice('status:'.length));
+  } else if (key.startsWith('status-exclude:')) {
+    next.statuses = restore(next.statuses, key.slice('status-exclude:'.length), next.availableStatuses);
+  } else if (key.startsWith('shipping:')) {
+    next.shippingMethods = drop(next.shippingMethods, key.slice('shipping:'.length));
+  } else if (key.startsWith('shipping-exclude:')) {
+    next.shippingMethods = restore(next.shippingMethods, key.slice('shipping-exclude:'.length), next.availableShippingMethods);
   }
 
   return next;
@@ -244,6 +291,10 @@ export function filtersFilenameSlug(filters) {
   if (filters.statuses && filters.statuses.length > 0) {
     bits.push(filters.statuses.join('-'));
   }
+  if (filters.shippingMethods && filters.shippingMethods.length > 0) {
+    bits.push(filters.shippingMethods.join('-'));
+  }
+  if (filters.uniqueCustomers) bits.push('unique-customers');
   return bits.join('_').replace(/[^a-zA-Z0-9\-_]/g, '-').substring(0, 60);
 }
 
@@ -270,6 +321,88 @@ function resolvePreset(preset) {
     from.setMonth(from.getMonth() - def.months);
   }
   return { dateFrom: toDateString(from), dateTo: '' };
+}
+
+/**
+ * Wire up one of the modal's tick-list filters (order status, shipping method).
+ *
+ * Everything is ticked by default; a single button flips between "Unselect all"
+ * and "Select all" to match whatever is currently ticked.
+ *
+ * @returns {{selection: function}} selection() gives
+ *   { values, available, none } - values is [] when everything is ticked, since
+ *   "all of them" is the same as no filter at all.
+ */
+function createMultiSelect({ overlay, listId, toggleId, checkboxClass, stored, load, emptyText, errorText }) {
+  const listEl = overlay.querySelector(`#${listId}`);
+  const toggleBtn = overlay.querySelector(`#${toggleId}`);
+  let available = [];
+
+  const boxes = () => Array.from(overlay.querySelectorAll(`.${checkboxClass}`));
+
+  const syncToggleLabel = () => {
+    const all = boxes();
+    const allChecked = all.length > 0 && all.every(cb => cb.checked);
+    toggleBtn.textContent = allChecked ? 'Unselect all' : 'Select all';
+    toggleBtn.disabled = all.length === 0;
+  };
+
+  const showNotice = (text, colour) => {
+    listEl.innerHTML = `<span style="color: ${colour}; font-size: 0.9rem;">${esc(text)}</span>`;
+  };
+
+  (async () => {
+    try {
+      available = await load();
+
+      if (available.length === 0) {
+        showNotice(emptyText, 'var(--text-secondary)');
+        syncToggleLabel();
+        return;
+      }
+
+      // No stored selection means "everything" - tick the lot
+      const storedValues = stored || [];
+      const selected = new Set(storedValues.map(v => v.toLowerCase()));
+      const selectAll = storedValues.length === 0;
+
+      listEl.innerHTML = available.map(value => `
+        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+          <input type="checkbox" class="${checkboxClass}" value="${esc(value)}"
+                 ${selectAll || selected.has(String(value).toLowerCase()) ? 'checked' : ''}
+                 style="width: 16px; height: 16px; flex-shrink: 0;">
+          <span>${esc(value)}</span>
+        </label>
+      `).join('');
+      syncToggleLabel();
+    } catch (error) {
+      console.error(`[Full Data Filters] Could not load ${listId}:`, error);
+      showNotice(errorText, 'var(--danger, #d33)');
+      syncToggleLabel();
+    }
+  })();
+
+  toggleBtn.addEventListener('click', () => {
+    const all = boxes();
+    const allChecked = all.length > 0 && all.every(cb => cb.checked);
+    all.forEach(cb => { cb.checked = !allChecked; });
+    syncToggleLabel();
+  });
+
+  listEl.addEventListener('change', (e) => {
+    if (e.target.classList.contains(checkboxClass)) syncToggleLabel();
+  });
+
+  return {
+    selection() {
+      const values = boxes().filter(cb => cb.checked).map(cb => cb.value);
+      return {
+        values: values.length === available.length ? [] : values,
+        available,
+        none: available.length > 0 && values.length === 0
+      };
+    }
+  };
 }
 
 /**
@@ -334,6 +467,39 @@ export function showFullDataFilterModal(region, currentFilters, onApply) {
             All statuses are included by default. Untick the ones you don't want (e.g. canceled).
           </p>
         </div>
+
+        <div class="nui-field" style="margin-top: 24px; border-top: 1px solid var(--bg-light); padding-top: 24px;">
+          <div class="nui-label" style="display: flex; align-items: center; justify-content: space-between;">
+            <span>Shipping Method</span>
+            <button type="button" class="btn btn-ghost btn-default" id="fdToggleShipping" style="padding: 2px 10px; font-size: 0.8rem;">Unselect all</button>
+          </div>
+          <div id="fdShippingList" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; margin-top: 12px; max-height: 220px; overflow-y: auto;">
+            <span style="color: var(--text-secondary); font-size: 0.9rem;">Loading shipping methods...</span>
+          </div>
+          <p class="filter-description" style="margin-top: 8px;">
+            All methods are included by default. Untick to narrow by how the order was shipped or collected.
+          </p>
+        </div>
+
+        <div class="nui-field" style="margin-top: 24px; border-top: 1px solid var(--bg-light); padding-top: 24px;">
+          <div class="nui-label"><span>Repeat Orders</span></div>
+          <label style="display: flex; align-items: flex-start; gap: 12px; cursor: pointer; margin-top: 12px;">
+            <input type="checkbox" id="fdUniqueCustomers" ${filters.uniqueCustomers ? 'checked' : ''}
+                   style="width: 18px; height: 18px; margin-top: 2px; flex-shrink: 0;">
+            <span>Show each customer only once per product</span>
+          </label>
+          <p class="filter-description" style="margin-top: 8px; margin-left: 30px;">
+            Keeps only the <strong>most recent</strong> order per customer per product, so one customer
+            can't appear twice for the same item. A customer is matched on name <em>and</em> email.
+            <br><br>
+            Example: search "Juvederm" - a customer who bought Juvederm 2 twice and Juvederm 3 once
+            appears twice: their latest Juvederm 2 order and their Juvederm 3 order. Different products
+            are still listed separately.
+            <br><br>
+            Row counts and the CSV export both reflect this, so it's the setting to use when building a
+            mailing list.
+          </p>
+        </div>
       </div>
 
       <div class="modal-footer" style="display: flex; justify-content: space-between; gap: 8px; padding: 16px;">
@@ -370,62 +536,28 @@ export function showFullDataFilterModal(region, currentFilters, onApply) {
   initDatePicker('#fdDateFrom');
   initDatePicker('#fdDateTo');
 
-  // Load the statuses actually present in the cached orders
-  const statusList = overlay.querySelector('#fdStatusList');
-  const toggleBtn = overlay.querySelector('#fdToggleStatuses');
-  let availableStatuses = [];
-
-  const statusCheckboxes = () => Array.from(overlay.querySelectorAll('.fd-status-checkbox'));
-
-  // The button toggles: "Unselect all" while everything is ticked, "Select all" otherwise
-  const syncToggleLabel = () => {
-    const boxes = statusCheckboxes();
-    const allChecked = boxes.length > 0 && boxes.every(cb => cb.checked);
-    toggleBtn.textContent = allChecked ? 'Unselect all' : 'Select all';
-    toggleBtn.disabled = boxes.length === 0;
-  };
-
-  (async () => {
-    try {
-      const result = await getAvailableStatuses(region);
-      availableStatuses = (result && result.statuses) || [];
-
-      if (availableStatuses.length === 0) {
-        statusList.innerHTML = '<span style="color: var(--text-secondary); font-size: 0.9rem;">No statuses found in the cached orders.</span>';
-        syncToggleLabel();
-        return;
-      }
-
-      // No stored selection means "all statuses" - tick everything
-      const stored = filters.statuses || [];
-      const selected = new Set(stored.map(s => s.toLowerCase()));
-      const selectAll = stored.length === 0;
-
-      statusList.innerHTML = availableStatuses.map(status => `
-        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-          <input type="checkbox" class="fd-status-checkbox" value="${status}"
-                 ${selectAll || selected.has(String(status).toLowerCase()) ? 'checked' : ''}
-                 style="width: 16px; height: 16px;">
-          <span>${status}</span>
-        </label>
-      `).join('');
-      syncToggleLabel();
-    } catch (error) {
-      console.error('[Full Data Filters] Could not load statuses:', error);
-      statusList.innerHTML = '<span style="color: var(--danger-color, #d33); font-size: 0.9rem;">Failed to load statuses.</span>';
-      syncToggleLabel();
-    }
-  })();
-
-  toggleBtn.addEventListener('click', () => {
-    const boxes = statusCheckboxes();
-    const allChecked = boxes.length > 0 && boxes.every(cb => cb.checked);
-    boxes.forEach(cb => { cb.checked = !allChecked; });
-    syncToggleLabel();
+  // Both multi-selects behave identically: everything ticked by default, one
+  // button that flips between "Unselect all" and "Select all".
+  const statusPicker = createMultiSelect({
+    overlay,
+    listId: 'fdStatusList',
+    toggleId: 'fdToggleStatuses',
+    checkboxClass: 'fd-status-checkbox',
+    stored: filters.statuses,
+    load: () => getAvailableStatuses(region).then(r => (r && r.statuses) || []),
+    emptyText: 'No statuses found in the cached orders.',
+    errorText: 'Failed to load statuses.'
   });
 
-  statusList.addEventListener('change', (e) => {
-    if (e.target.classList.contains('fd-status-checkbox')) syncToggleLabel();
+  const shippingPicker = createMultiSelect({
+    overlay,
+    listId: 'fdShippingList',
+    toggleId: 'fdToggleShipping',
+    checkboxClass: 'fd-shipping-checkbox',
+    stored: filters.shippingMethods,
+    load: () => getShippingMethods(region).then(r => (r && r.shipping_methods) || []),
+    emptyText: 'No shipping methods found in the cached orders.',
+    errorText: 'Failed to load shipping methods.'
   });
 
   overlay.querySelector('#fdResetBtn').addEventListener('click', () => {
@@ -455,20 +587,30 @@ export function showFullDataFilterModal(region, currentFilters, onApply) {
       ({ dateFrom, dateTo } = resolvePreset(preset));
     }
 
-    let statuses = statusCheckboxes().filter(cb => cb.checked).map(cb => cb.value);
-
-    if (availableStatuses.length > 0 && statuses.length === 0) {
+    const statusSelection = statusPicker.selection();
+    if (statusSelection.none) {
       showToast('Select at least one order status', 'warning');
       return;
     }
 
-    // Everything ticked is the same as no status filter - keep the query and
-    // the summary bar clean rather than listing every status
-    if (statuses.length === availableStatuses.length) {
-      statuses = [];
+    const shippingSelection = shippingPicker.selection();
+    if (shippingSelection.none) {
+      showToast('Select at least one shipping method', 'warning');
+      return;
     }
 
     close();
-    if (onApply) onApply({ preset, dateFrom, dateTo, statuses, availableStatuses });
+    if (onApply) {
+      onApply({
+        preset,
+        dateFrom,
+        dateTo,
+        statuses: statusSelection.values,
+        availableStatuses: statusSelection.available,
+        shippingMethods: shippingSelection.values,
+        availableShippingMethods: shippingSelection.available,
+        uniqueCustomers: overlay.querySelector('#fdUniqueCustomers').checked
+      });
+    }
   });
 }

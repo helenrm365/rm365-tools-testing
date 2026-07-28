@@ -14,7 +14,7 @@ import {
   hasActiveFullDataFilters,
   describeFullDataFilters,
   filtersFilenameSlug
-} from './full-data-filters.js?v=5';
+} from './full-data-filters.js?v=6';
 
 console.log('═══════════════════════════════════════════════════');
 console.log('[FR Magento] Module loaded - v4 (Debug Version)');

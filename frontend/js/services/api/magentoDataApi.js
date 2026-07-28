@@ -6,17 +6,22 @@ import { getApiUrl } from '../../config.js';
 const API = '/v1/magentodata';  // http.js adds BASE which already includes /api
 
 /**
- * Append full-data filters (order statuses + created_at date range) to a query string.
+ * Append full-data filters to a query string.
  * @param {URLSearchParams} params
- * @param {{statuses?: string[], dateFrom?: string, dateTo?: string}} filters
+ * @param {{statuses?: string[], shippingMethods?: string[], dateFrom?: string,
+ *          dateTo?: string, uniqueCustomers?: boolean}} filters
  */
 function appendFullDataFilters(params, filters) {
   if (!filters) return params;
   if (filters.statuses && filters.statuses.length > 0) {
     params.append('statuses', filters.statuses.join(','));
   }
+  if (filters.shippingMethods && filters.shippingMethods.length > 0) {
+    params.append('shipping_methods', filters.shippingMethods.join(','));
+  }
   if (filters.dateFrom) params.append('date_from', filters.dateFrom);
   if (filters.dateTo) params.append('date_to', filters.dateTo);
+  if (filters.uniqueCustomers) params.append('unique_customers', 'true');
   return params;
 }
 

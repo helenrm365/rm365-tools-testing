@@ -987,9 +987,18 @@ class MagentoDataRepo:
                 cursor.close()
                 return_products_connection(conn)
     
+    # One row per (customer, product), keeping that customer's most recent order
+    # for the product. Email + full name must both match to count as the same
+    # customer. id breaks ties when a customer has two lines of the same SKU on
+    # the same timestamp, so paging stays stable.
+    DEDUPE_KEY = "LOWER(customer_email), LOWER(customer_full_name), sku"
+    DEDUPE_ORDER = f"ORDER BY {DEDUPE_KEY}, created_at DESC, id DESC"
+    DEDUPE_KEY_COLUMNS = ['id', 'created_at', 'customer_email', 'customer_full_name', 'sku']
+
     @staticmethod
     def _build_full_data_filters(search: str = "", statuses: list = None,
                                  date_from: str = None, date_to: str = None,
+                                 shipping_methods: list = None,
                                  prefix: str = "") -> tuple:
         """Build the WHERE clause and params shared by the full-data queries.
 
@@ -1017,6 +1026,12 @@ class MagentoDataRepo:
                 clauses.append(f"LOWER({prefix}status) = ANY(%s)")
                 params.append([s.lower() for s in cleaned])
 
+        if shipping_methods:
+            cleaned = [m.strip() for m in shipping_methods if m and m.strip()]
+            if cleaned:
+                clauses.append(f"LOWER({prefix}shipping_method) = ANY(%s)")
+                params.append([m.lower() for m in cleaned])
+
         if date_from:
             clauses.append(f"{prefix}created_at >= %s")
             params.append(date_from)
@@ -1030,8 +1045,13 @@ class MagentoDataRepo:
         where_clause = f"WHERE {' AND '.join(clauses)}" if clauses else ""
         return where_clause, params
 
-    def get_magento_data(self, table_name: str, limit: int = 100, offset: int = 0, search: str = "", fields: list = None, sort_by: str = None, sort_order: str = "desc", statuses: list = None, date_from: str = None, date_to: str = None) -> Dict[str, Any]:
-        """Get magento data from a specific table with pagination, search, sorting, status/date filters and optional field selection"""
+    def get_magento_data(self, table_name: str, limit: int = 100, offset: int = 0, search: str = "", fields: list = None, sort_by: str = None, sort_order: str = "desc", statuses: list = None, date_from: str = None, date_to: str = None, shipping_methods: list = None, unique_customers: bool = False) -> Dict[str, Any]:
+        """Get magento data from a specific table with pagination, search, sorting,
+        status/date/shipping filters and optional field selection.
+
+        unique_customers collapses the result to one row per customer per product,
+        keeping that customer's most recent order for the product.
+        """
         # Validate table name to prevent SQL injection
         valid_tables = ['uk_orders_cache', 'fr_orders_cache', 'nl_orders_cache', 'test_magento_data']
         if table_name not in valid_tables:
@@ -1068,17 +1088,42 @@ class MagentoDataRepo:
             conn = get_products_connection()
             cursor = conn.cursor()
             
-            # Build the query with optional search / status / date filters
-            where_clause, filter_params = self._build_full_data_filters(search, statuses, date_from, date_to)
+            # Build the query with optional search / status / date / shipping filters
+            where_clause, filter_params = self._build_full_data_filters(
+                search, statuses, date_from, date_to, shipping_methods)
 
-            count_query = f"SELECT COUNT(*) FROM {table_name} {where_clause}"
-            data_query = f"""
-                SELECT {select_clause}
-                FROM {table_name}
-                {where_clause}
-                {order_clause}
-                LIMIT %s OFFSET %s
-            """
+            if unique_customers:
+                # DISTINCT ON keeps the first row of each key group, so the inner
+                # query orders by the key then newest-first; the caller's own sort
+                # is applied outside it.
+                inner_columns = columns + [c for c in self.DEDUPE_KEY_COLUMNS if c not in columns]
+                count_query = f"""
+                    SELECT COUNT(*) FROM (
+                        SELECT DISTINCT ON ({self.DEDUPE_KEY}) id
+                        FROM {table_name}
+                        {where_clause}
+                        {self.DEDUPE_ORDER}
+                    ) deduped
+                """
+                data_query = f"""
+                    SELECT {select_clause} FROM (
+                        SELECT DISTINCT ON ({self.DEDUPE_KEY}) {', '.join(inner_columns)}
+                        FROM {table_name}
+                        {where_clause}
+                        {self.DEDUPE_ORDER}
+                    ) deduped
+                    {order_clause}
+                    LIMIT %s OFFSET %s
+                """
+            else:
+                count_query = f"SELECT COUNT(*) FROM {table_name} {where_clause}"
+                data_query = f"""
+                    SELECT {select_clause}
+                    FROM {table_name}
+                    {where_clause}
+                    {order_clause}
+                    LIMIT %s OFFSET %s
+                """
             cursor.execute(count_query, tuple(filter_params))
             total_count = cursor.fetchone()[0]
 
@@ -3766,7 +3811,8 @@ class MagentoDataRepo:
     def get_all_regions_data(self, limit: int = 100, offset: int = 0, search: str = "",
                              sort_by: str = None, sort_order: str = "desc",
                              statuses: list = None, date_from: str = None,
-                             date_to: str = None) -> Dict[str, Any]:
+                             date_to: str = None, shipping_methods: list = None,
+                             unique_customers: bool = False) -> Dict[str, Any]:
         """Get combined full data from all regions with a region column."""
         all_columns = ['id', 'order_number', 'created_at', 'sku', 'name', 'qty',
                        'original_price', 'special_price', 'status', 'currency',
@@ -3793,15 +3839,26 @@ class MagentoDataRepo:
             conn = get_products_connection()
             cursor = conn.cursor()
 
-            where, filter_params = self._build_full_data_filters(search, statuses, date_from, date_to)
+            where, filter_params = self._build_full_data_filters(
+                search, statuses, date_from, date_to, shipping_methods)
             filter_params = tuple(filter_params)
 
-            count_sql = f"SELECT COUNT(*) FROM ({union_query}) sub {where}"
+            if unique_customers:
+                # Deduped across regions on purpose: a customer who bought the same
+                # product on two storefronts is still one customer for that product.
+                deduped = (f"SELECT DISTINCT ON ({self.DEDUPE_KEY}) * "
+                           f"FROM ({union_query}) sub {where} {self.DEDUPE_ORDER}")
+                count_sql = f"SELECT COUNT(*) FROM ({deduped}) deduped"
+                data_sql = (f"SELECT * FROM ({deduped}) deduped "
+                            f"ORDER BY {order_column} {order_direction} LIMIT %s OFFSET %s")
+            else:
+                count_sql = f"SELECT COUNT(*) FROM ({union_query}) sub {where}"
+                data_sql = (f"SELECT * FROM ({union_query}) sub {where} "
+                            f"ORDER BY {order_column} {order_direction} LIMIT %s OFFSET %s")
+
             cursor.execute(count_sql, filter_params)
             total_count = cursor.fetchone()[0]
 
-            data_sql = (f"SELECT * FROM ({union_query}) sub {where} "
-                        f"ORDER BY {order_column} {order_direction} LIMIT %s OFFSET %s")
             cursor.execute(data_sql, filter_params + (limit, offset))
 
             rows = cursor.fetchall()

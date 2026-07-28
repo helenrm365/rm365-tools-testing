@@ -15,11 +15,11 @@ router = APIRouter()
 svc = MagentoDataService()
 
 
-def _parse_statuses(statuses: str) -> Optional[List[str]]:
-    """Turn a comma-separated statuses query param into a clean list (None when empty)."""
-    if not statuses:
+def _parse_csv_list(value: str) -> Optional[List[str]]:
+    """Turn a comma-separated query param into a clean list (None when empty)."""
+    if not value:
         return None
-    parsed = [s.strip() for s in statuses.split(',') if s.strip()]
+    parsed = [v.strip() for v in value.split(',') if v.strip()]
     return parsed or None
 
 
@@ -118,11 +118,14 @@ def get_all_regions_data(
     statuses: str = Query("", description="Comma-separated order statuses to include (e.g. 'complete,processing')"),
     date_from: str = Query("", description="Only include orders created on/after this date (YYYY-MM-DD)"),
     date_to: str = Query("", description="Only include orders created on/before this date (YYYY-MM-DD)"),
+    shipping_methods: str = Query("", description="Comma-separated shipping methods to include"),
+    unique_customers: bool = Query(False, description="One row per customer per product (their most recent order)"),
     user=Depends(get_current_user)
 ):
     """Get combined magento data from all regions (UK, FR, NL) with a region column"""
     result = svc.get_all_regions_data(limit, offset, search, sort_by, sort_order,
-                                      _parse_statuses(statuses), date_from or None, date_to or None)
+                                      _parse_csv_list(statuses), date_from or None, date_to or None,
+                                      _parse_csv_list(shipping_methods), unique_customers)
     return result
 
 
@@ -202,12 +205,15 @@ def get_uk_magento_data(
     statuses: str = Query("", description="Comma-separated order statuses to include (e.g. 'complete,processing')"),
     date_from: str = Query("", description="Only include orders created on/after this date (YYYY-MM-DD)"),
     date_to: str = Query("", description="Only include orders created on/before this date (YYYY-MM-DD)"),
+    shipping_methods: str = Query("", description="Comma-separated shipping methods to include"),
+    unique_customers: bool = Query(False, description="One row per customer per product (their most recent order)"),
     user=Depends(get_current_user)
 ):
     """Get UK magento data with pagination, search, status/date filters and optional field selection"""
     field_list = fields.split(',') if fields else None
     result = svc.get_region_data("uk", limit, offset, search, field_list, sort_by, sort_order,
-                                 _parse_statuses(statuses), date_from or None, date_to or None)
+                                 _parse_csv_list(statuses), date_from or None, date_to or None,
+                                 _parse_csv_list(shipping_methods), unique_customers)
     return MagentoDataResponse(**result)
 
 
@@ -245,12 +251,15 @@ def get_fr_magento_orders_cache(
     statuses: str = Query("", description="Comma-separated order statuses to include (e.g. 'complete,processing')"),
     date_from: str = Query("", description="Only include orders created on/after this date (YYYY-MM-DD)"),
     date_to: str = Query("", description="Only include orders created on/before this date (YYYY-MM-DD)"),
+    shipping_methods: str = Query("", description="Comma-separated shipping methods to include"),
+    unique_customers: bool = Query(False, description="One row per customer per product (their most recent order)"),
     user=Depends(get_current_user)
 ):
     """Get FR magento data with pagination, search, status/date filters and optional field selection"""
     field_list = fields.split(',') if fields else None
     result = svc.get_region_data("fr", limit, offset, search, field_list, sort_by, sort_order,
-                                 _parse_statuses(statuses), date_from or None, date_to or None)
+                                 _parse_csv_list(statuses), date_from or None, date_to or None,
+                                 _parse_csv_list(shipping_methods), unique_customers)
     return MagentoDataResponse(**result)
 
 
@@ -288,12 +297,15 @@ def get_nl_magento_orders_cache(
     statuses: str = Query("", description="Comma-separated order statuses to include (e.g. 'complete,processing')"),
     date_from: str = Query("", description="Only include orders created on/after this date (YYYY-MM-DD)"),
     date_to: str = Query("", description="Only include orders created on/before this date (YYYY-MM-DD)"),
+    shipping_methods: str = Query("", description="Comma-separated shipping methods to include"),
+    unique_customers: bool = Query(False, description="One row per customer per product (their most recent order)"),
     user=Depends(get_current_user)
 ):
     """Get NL magento data with pagination, search, status/date filters and optional field selection"""
     field_list = fields.split(',') if fields else None
     result = svc.get_region_data("nl", limit, offset, search, field_list, sort_by, sort_order,
-                                 _parse_statuses(statuses), date_from or None, date_to or None)
+                                 _parse_csv_list(statuses), date_from or None, date_to or None,
+                                 _parse_csv_list(shipping_methods), unique_customers)
     return MagentoDataResponse(**result)
 
 
