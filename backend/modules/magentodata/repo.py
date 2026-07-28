@@ -989,11 +989,25 @@ class MagentoDataRepo:
     
     # One row per (customer, product), keeping that customer's most recent order
     # for the product. Email + full name must both match to count as the same
-    # customer. id breaks ties when a customer has two lines of the same SKU on
-    # the same timestamp, so paging stays stable.
-    DEDUPE_KEY = "LOWER(customer_email), LOWER(customer_full_name), sku"
-    DEDUPE_ORDER = f"ORDER BY {DEDUPE_KEY}, created_at DESC, id DESC"
+    # customer. id breaks ties when a customer has two lines of the same product
+    # on the same timestamp, so paging stays stable.
+    #
+    # "Product" is the canonical SKU, not the raw one: manual sku_aliases first,
+    # then all variant suffixes stripped (-MD short for merged, plus -SD short
+    # date, -DP damaged packaging, -NP no packaging, -MV missing vials). Same
+    # rule the label generator and inventory management use, so a customer who
+    # bought PROD123 and PROD123-SD counts as having bought it once.
+    DEDUPE_SKU_EXPR = "COALESCE(sa.unified_sku, REGEXP_REPLACE({p}sku, '-(MD|SD|DP|NP|MV)(-.*)?$', '', 'i'))"
     DEDUPE_KEY_COLUMNS = ['id', 'created_at', 'customer_email', 'customer_full_name', 'sku']
+
+    @classmethod
+    def _dedupe_clauses(cls, prefix: str = "") -> tuple:
+        """DISTINCT ON key, its ORDER BY, and the alias join, for a given table prefix."""
+        p = f"{prefix}." if prefix else ""
+        key = f"LOWER({p}customer_email), LOWER({p}customer_full_name), {cls.DEDUPE_SKU_EXPR.format(p=p)}"
+        order = f"ORDER BY {key}, {p}created_at DESC, {p}id DESC"
+        join = f"LEFT JOIN sku_aliases sa ON {p}sku = sa.alias_sku"
+        return key, order, join
 
     @staticmethod
     def _build_full_data_filters(search: str = "", statuses: list = None,
@@ -1088,34 +1102,41 @@ class MagentoDataRepo:
             conn = get_products_connection()
             cursor = conn.cursor()
             
-            # Build the query with optional search / status / date / shipping filters
-            where_clause, filter_params = self._build_full_data_filters(
-                search, statuses, date_from, date_to, shipping_methods)
-
             if unique_customers:
+                # Joining sku_aliases means every column has to be qualified
+                key, dedupe_order, alias_join = self._dedupe_clauses('s')
+                where_clause, filter_params = self._build_full_data_filters(
+                    search, statuses, date_from, date_to, shipping_methods, prefix='s.')
+
                 # DISTINCT ON keeps the first row of each key group, so the inner
                 # query orders by the key then newest-first; the caller's own sort
                 # is applied outside it.
                 inner_columns = columns + [c for c in self.DEDUPE_KEY_COLUMNS if c not in columns]
+                inner_select = ', '.join(f's.{c}' for c in inner_columns)
                 count_query = f"""
                     SELECT COUNT(*) FROM (
-                        SELECT DISTINCT ON ({self.DEDUPE_KEY}) id
-                        FROM {table_name}
+                        SELECT DISTINCT ON ({key}) s.id
+                        FROM {table_name} s
+                        {alias_join}
                         {where_clause}
-                        {self.DEDUPE_ORDER}
+                        {dedupe_order}
                     ) deduped
                 """
                 data_query = f"""
                     SELECT {select_clause} FROM (
-                        SELECT DISTINCT ON ({self.DEDUPE_KEY}) {', '.join(inner_columns)}
-                        FROM {table_name}
+                        SELECT DISTINCT ON ({key}) {inner_select}
+                        FROM {table_name} s
+                        {alias_join}
                         {where_clause}
-                        {self.DEDUPE_ORDER}
+                        {dedupe_order}
                     ) deduped
                     {order_clause}
                     LIMIT %s OFFSET %s
                 """
             else:
+                where_clause, filter_params = self._build_full_data_filters(
+                    search, statuses, date_from, date_to, shipping_methods)
+
                 count_query = f"SELECT COUNT(*) FROM {table_name} {where_clause}"
                 data_query = f"""
                     SELECT {select_clause}
@@ -3839,22 +3860,26 @@ class MagentoDataRepo:
             conn = get_products_connection()
             cursor = conn.cursor()
 
-            where, filter_params = self._build_full_data_filters(
-                search, statuses, date_from, date_to, shipping_methods)
-            filter_params = tuple(filter_params)
-
             if unique_customers:
                 # Deduped across regions on purpose: a customer who bought the same
                 # product on two storefronts is still one customer for that product.
-                deduped = (f"SELECT DISTINCT ON ({self.DEDUPE_KEY}) * "
-                           f"FROM ({union_query}) sub {where} {self.DEDUPE_ORDER}")
+                key, dedupe_order, alias_join = self._dedupe_clauses('sub')
+                where, filter_params = self._build_full_data_filters(
+                    search, statuses, date_from, date_to, shipping_methods, prefix='sub.')
+
+                deduped = (f"SELECT DISTINCT ON ({key}) sub.* "
+                           f"FROM ({union_query}) sub {alias_join} {where} {dedupe_order}")
                 count_sql = f"SELECT COUNT(*) FROM ({deduped}) deduped"
                 data_sql = (f"SELECT * FROM ({deduped}) deduped "
                             f"ORDER BY {order_column} {order_direction} LIMIT %s OFFSET %s")
             else:
+                where, filter_params = self._build_full_data_filters(
+                    search, statuses, date_from, date_to, shipping_methods)
                 count_sql = f"SELECT COUNT(*) FROM ({union_query}) sub {where}"
                 data_sql = (f"SELECT * FROM ({union_query}) sub {where} "
                             f"ORDER BY {order_column} {order_direction} LIMIT %s OFFSET %s")
+
+            filter_params = tuple(filter_params)
 
             cursor.execute(count_sql, filter_params)
             total_count = cursor.fetchone()[0]
