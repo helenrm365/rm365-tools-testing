@@ -3012,39 +3012,8 @@ function updateConversionDisplay(region, value) {
     infoElement.style.color = '#27ae60';
 }
 
-// Add helper functions to window for the inline handlers
-window.updateRangeInputs = function(radio) {
-    const daysInput = document.getElementById('rangeDays');
-    const monthsInput = document.getElementById('rangeMonths');
-    const sinceInput = document.getElementById('rangeSince');
-    
-    if (!daysInput || !monthsInput || !sinceInput) return;
-    
-    daysInput.disabled = true;
-    monthsInput.disabled = true;
-    sinceInput.disabled = true;
-    
-    daysInput.style.opacity = '0.5';
-    monthsInput.style.opacity = '0.5';
-    sinceInput.style.opacity = '0.5';
-    
-    if (radio.value === 'days') {
-        daysInput.disabled = false;
-        daysInput.style.opacity = '1';
-        daysInput.focus();
-    } else if (radio.value === 'months') {
-        monthsInput.disabled = false;
-        monthsInput.style.opacity = '1';
-        monthsInput.focus();
-    } else if (radio.value === 'since') {
-        sinceInput.disabled = false;
-        sinceInput.style.opacity = '1';
-        sinceInput.focus();
-    }
-};
-
 window.runCustomAnalysis = async function(region) {
-    const rangeType = document.querySelector('input[name="rangeType"]:checked').value;
+    const rangeType = document.getElementById('rangeModeGroup')?.dataset.selected || 'days';
     const useExclusions = document.getElementById('useExclusions').checked;
     const shippingMethodSelect = document.getElementById('shippingMethodSelect');
     const shippingMethod = shippingMethodSelect ? shippingMethodSelect.value : '';
@@ -3146,33 +3115,39 @@ function createCustomRangeModal(region) {
             
             <div class="modal-body">
                 <div class="nui-field">
-                    <div class="nui-label">
+                                    <div class="nui-label">
                         <span>Select Time Range</span>
                     </div>
-                    
-                    <div style="display: flex; flex-direction: column; gap: 16px; margin-top: 12px;">
-                        <!-- Last X Days -->
-                        <label class="radio-option">
-                            <input type="radio" name="rangeType" value="days" checked>
-                            <span>Last</span>
-                            <input type="number" id="rangeDays" class="nui-input nui-input-default" value="30" min="1" style="width: 80px; margin: 0 8px;">
-                            <span>Days</span>
-                        </label>
-                        
-                        <!-- Last X Months -->
-                        <label class="radio-option">
-                            <input type="radio" name="rangeType" value="months">
-                            <span>Last</span>
-                            <input type="number" id="rangeMonths" class="nui-input nui-input-default" value="6" min="1" disabled style="width: 80px; margin: 0 8px; opacity: 0.5;">
-                            <span>Months</span>
-                        </label>
-                        
-                        <!-- Since Date -->
-                        <label class="radio-option">
-                            <input type="radio" name="rangeType" value="since">
-                            <span>Since</span>
-                            <input type="text" id="rangeSince" class="nui-input nui-input-default" disabled style="margin-left: 8px; opacity: 0.5;">
-                        </label>
+
+                    <!-- buttons pick the mode; the matching field appears below -->
+                    <div id="rangeModeGroup" data-selected="days"
+                         style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; margin-top: 12px;">
+                        <button type="button" class="btn btn-solid btn-success rounded-lg range-mode-btn" data-range="days">
+                          <i class="fas fa-calendar-day"></i>
+                          <span>Last days</span>
+                        </button>
+                        <button type="button" class="btn btn-faded btn-success rounded-lg range-mode-btn" data-range="months">
+                          <i class="fas fa-calendar-alt"></i>
+                          <span>Last months</span>
+                        </button>
+                        <button type="button" class="btn btn-faded btn-success rounded-lg range-mode-btn" data-range="since">
+                          <i class="fas fa-calendar-week"></i>
+                          <span>Since date</span>
+                        </button>
+                    </div>
+
+                    <div class="nui-field range-value-field" id="rangeDaysField" style="margin-top: 14px;">
+                        <div class="nui-label" style="font-size: 0.85rem;"><span>Number of days</span></div>
+                        <input type="number" id="rangeDays" class="nui-input nui-input-default" value="30" min="1" style="width: 100%;">
+                    </div>
+                    <div class="nui-field range-value-field" id="rangeMonthsField" style="margin-top: 14px; display: none;">
+                        <div class="nui-label" style="font-size: 0.85rem;"><span>Number of months</span></div>
+                        <input type="number" id="rangeMonths" class="nui-input nui-input-default" value="6" min="1" style="width: 100%;">
+                    </div>
+                    <div class="nui-field range-value-field" id="rangeSinceField" style="margin-top: 14px; display: none;">
+                        <div class="nui-label" style="font-size: 0.85rem;"><span>Orders since</span></div>
+                        <input type="text" id="rangeSince" class="nui-input nui-input-default" style="width: 100%;"
+                               placeholder="YYYY-MM-DD" autocomplete="off" data-lpignore="true">
                     </div>
                 </div>
                 
@@ -3230,21 +3205,22 @@ function createCustomRangeModal(region) {
     
     // Setup radio button handlers to enable/disable inputs
     setTimeout(() => {
-        const radios = overlay.querySelectorAll('input[name="rangeType"]');
-        radios.forEach(radio => {
-            radio.addEventListener('change', () => {
-                const daysInput = overlay.querySelector('#rangeDays');
-                const monthsInput = overlay.querySelector('#rangeMonths');
-                const sinceInput = overlay.querySelector('#rangeSince');
-                
-                daysInput.disabled = radio.value !== 'days';
-                daysInput.style.opacity = radio.value === 'days' ? '1' : '0.5';
-                
-                monthsInput.disabled = radio.value !== 'months';
-                monthsInput.style.opacity = radio.value === 'months' ? '1' : '0.5';
-                
-                sinceInput.disabled = radio.value !== 'since';
-                sinceInput.style.opacity = radio.value === 'since' ? '1' : '0.5';
+        // Selected mode is the solid button; only its field is shown
+        const fields = { days: '#rangeDaysField', months: '#rangeMonthsField', since: '#rangeSinceField' };
+        const modeGroup = overlay.querySelector('#rangeModeGroup');
+        modeGroup.addEventListener('click', (e) => {
+            const btn = e.target.closest('.range-mode-btn');
+            if (!btn) return;
+
+            modeGroup.dataset.selected = btn.dataset.range;
+            modeGroup.querySelectorAll('.range-mode-btn').forEach(b => {
+                const isSelected = b === btn;
+                b.classList.toggle('btn-solid', isSelected);
+                b.classList.toggle('btn-faded', !isSelected);
+            });
+            Object.entries(fields).forEach(([type, selector]) => {
+                const field = overlay.querySelector(selector);
+                if (field) field.style.display = btn.dataset.range === type ? '' : 'none';
             });
         });
         initDatePicker('#rangeSince');

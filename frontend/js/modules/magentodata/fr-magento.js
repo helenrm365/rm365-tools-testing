@@ -3,7 +3,7 @@ import { getFRMagentoData, getFRAggregatedData, getCustomRangeAggregatedData, re
 import { showToast } from '../../ui/toast.js';
 import { showProgressNotification } from '../../ui/progressNotification.js';
 import { confirmModal } from '../../ui/confirmationModal.js';
-import { showFiltersModal, showCustomRangeModal } from './aggregated-filters.js?v=3';
+import { showFiltersModal, showCustomRangeModal } from './aggregated-filters.js?v=5';
 import { exportToPDF } from '../../utils/pdfExport.js';
 import { exportToCSV, exportFullDataToCSV } from '../../utils/csvExport.js';
 import {
@@ -12,9 +12,9 @@ import {
   syncControlGroups,
   emptyFullDataFilters,
   hasActiveFullDataFilters,
-  describeFullDataFilters,
+  countActiveFullDataFilters,
   filtersFilenameSlug
-} from './full-data-filters.js?v=6';
+} from './full-data-filters.js?v=9';
 
 console.log('═══════════════════════════════════════════════════');
 console.log('[FR Magento] Module loaded - v4 (Debug Version)');
@@ -999,7 +999,9 @@ async function applyFullDataFilters(filters) {
   }
 
   if (hasActiveFullDataFilters(filters)) {
-    showToast(`Filters applied: ${describeFullDataFilters(filters)}`, 'success');
+    // Keep it short - the chip bar already spells out what is applied
+    const count = countActiveFullDataFilters(filters);
+    showToast(`${count} filter${count === 1 ? '' : 's'} applied`, 'success');
   } else {
     showToast('Filters cleared', 'info');
   }

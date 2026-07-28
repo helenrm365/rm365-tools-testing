@@ -6,12 +6,12 @@ import { initDatePicker } from '../../ui/datePicker.js';
 import { showToast } from '../../ui/toast.js';
 
 const DATE_PRESETS = [
-  { value: 'all', label: 'All time' },
-  { value: '30d', label: 'Last 30 days', months: 1, days: 30 },
-  { value: '3m', label: 'Last 3 months', months: 3 },
-  { value: '6m', label: 'Last 6 months', months: 6 },
-  { value: '12m', label: 'Last 12 months', months: 12 },
-  { value: 'custom', label: 'Custom range' }
+  { value: 'all', label: 'All time', icon: 'fa-infinity' },
+  { value: '30d', label: 'Last 30 days', months: 1, days: 30, icon: 'fa-calendar-day' },
+  { value: '3m', label: 'Last 3 months', months: 3, icon: 'fa-calendar-alt' },
+  { value: '6m', label: 'Last 6 months', months: 6, icon: 'fa-calendar-alt' },
+  { value: '12m', label: 'Last 12 months', months: 12, icon: 'fa-calendar-alt' },
+  { value: 'custom', label: 'Custom range', icon: 'fa-calendar-week' }
 ];
 
 /**
@@ -49,36 +49,18 @@ export function hasActiveFullDataFilters(filters) {
 }
 
 /**
- * Human readable summary, e.g. "Last 6 months · complete, processing".
+ * How many kinds of filter are active - date, status, shipping and the
+ * per-customer option each count once, however many values they hold.
+ * Used for a short confirmation toast; the chip bar carries the detail.
  */
-export function describeFullDataFilters(filters) {
-  if (!hasActiveFullDataFilters(filters)) return '';
-
-  const parts = [];
-  const preset = DATE_PRESETS.find(p => p.value === filters.preset);
-  if (filters.preset && filters.preset !== 'all' && filters.preset !== 'custom' && preset) {
-    parts.push(preset.label);
-  } else if (filters.dateFrom && filters.dateTo) {
-    parts.push(`${filters.dateFrom} to ${filters.dateTo}`);
-  } else if (filters.dateFrom) {
-    parts.push(`From ${filters.dateFrom}`);
-  } else if (filters.dateTo) {
-    parts.push(`Until ${filters.dateTo}`);
-  }
-
-  if (filters.statuses && filters.statuses.length > 0) {
-    parts.push(filters.statuses.join(', '));
-  }
-
-  if (filters.shippingMethods && filters.shippingMethods.length > 0) {
-    parts.push(filters.shippingMethods.join(', '));
-  }
-
-  if (filters.uniqueCustomers) {
-    parts.push('one per customer & product');
-  }
-
-  return parts.join(' · ');
+export function countActiveFullDataFilters(filters) {
+  if (!filters) return 0;
+  let count = 0;
+  if (filters.dateFrom || filters.dateTo) count++;
+  if (filters.statuses && filters.statuses.length > 0) count++;
+  if (filters.shippingMethods && filters.shippingMethods.length > 0) count++;
+  if (filters.uniqueCustomers) count++;
+  return count;
 }
 
 function esc(text) {
@@ -430,23 +412,26 @@ export function showFullDataFilterModal(region, currentFilters, onApply) {
       <div class="modal-body">
         <div class="nui-field">
           <div class="nui-label"><span>Date Range (order created)</span></div>
-          <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 12px;">
+          <!-- auto-fit keeps this 3-across on desktop and 2 (or 1) on a phone -->
+          <div id="fdPresetGroup" data-selected="${filters.preset}"
+               style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; margin-top: 12px;">
             ${DATE_PRESETS.map(p => `
-              <label class="radio-option">
-                <input type="radio" name="fdDatePreset" value="${p.value}" ${filters.preset === p.value ? 'checked' : ''}>
+              <button type="button" class="btn ${filters.preset === p.value ? 'btn-solid' : 'btn-faded'} btn-success rounded-lg fd-preset-btn"
+                      data-preset="${p.value}">
+                <i class="fas ${p.icon}"></i>
                 <span>${p.label}</span>
-              </label>
+              </button>
             `).join('')}
           </div>
-          <div id="fdCustomDates" style="display: ${filters.preset === 'custom' ? 'flex' : 'none'}; gap: 12px; margin-top: 12px; margin-left: 28px;">
+          <div id="fdCustomDates" style="display: ${filters.preset === 'custom' ? 'flex' : 'none'}; flex-wrap: wrap; gap: 12px; margin-top: 12px;">
             <!-- each date input needs its own .nui-field so the date picker anchors correctly -->
-            <div class="nui-field" style="flex: 1;">
+            <div class="nui-field" style="flex: 1 1 150px; min-width: 0;">
               <div class="nui-label" style="font-size: 0.85rem;"><span>From</span></div>
               <input type="text" id="fdDateFrom" class="nui-input nui-input-default" style="width: 100%;"
                      placeholder="YYYY-MM-DD" value="${filters.preset === 'custom' ? (filters.dateFrom || '') : ''}"
                      autocomplete="off" data-lpignore="true">
             </div>
-            <div class="nui-field" style="flex: 1;">
+            <div class="nui-field" style="flex: 1 1 150px; min-width: 0;">
               <div class="nui-label" style="font-size: 0.85rem;"><span>To</span></div>
               <input type="text" id="fdDateTo" class="nui-input nui-input-default" style="width: 100%;"
                      placeholder="YYYY-MM-DD" value="${filters.preset === 'custom' ? (filters.dateTo || '') : ''}"
@@ -525,12 +510,20 @@ export function showFullDataFilterModal(region, currentFilters, onApply) {
   overlay.querySelector('#fdFilterCloseBtn').addEventListener('click', close);
   overlay.querySelector('#fdCancelBtn').addEventListener('click', close);
 
-  // Toggle the custom date inputs with the preset radios
+  // Selected preset is the solid button; the rest stay faded
   const customDates = overlay.querySelector('#fdCustomDates');
-  overlay.querySelectorAll('input[name="fdDatePreset"]').forEach(radio => {
-    radio.addEventListener('change', () => {
-      customDates.style.display = radio.value === 'custom' ? 'flex' : 'none';
+  const presetGroup = overlay.querySelector('#fdPresetGroup');
+  presetGroup.addEventListener('click', (e) => {
+    const btn = e.target.closest('.fd-preset-btn');
+    if (!btn) return;
+
+    presetGroup.dataset.selected = btn.dataset.preset;
+    presetGroup.querySelectorAll('.fd-preset-btn').forEach(b => {
+      const isSelected = b === btn;
+      b.classList.toggle('btn-solid', isSelected);
+      b.classList.toggle('btn-faded', !isSelected);
     });
+    customDates.style.display = btn.dataset.preset === 'custom' ? 'flex' : 'none';
   });
 
   initDatePicker('#fdDateFrom');
@@ -566,7 +559,7 @@ export function showFullDataFilterModal(region, currentFilters, onApply) {
   });
 
   overlay.querySelector('#fdApplyBtn').addEventListener('click', () => {
-    const preset = overlay.querySelector('input[name="fdDatePreset"]:checked')?.value || 'all';
+    const preset = presetGroup.dataset.selected || 'all';
     let dateFrom = '';
     let dateTo = '';
 
