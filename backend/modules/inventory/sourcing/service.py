@@ -1653,10 +1653,14 @@ class SourcingService:
         # (even empty) = it ran and this is what it found, keyed by physical page so it
         # stays valid even if a deterministic tier's items ended up winning.
         ai_page_dates: Optional[Dict[int, str]] = None
+        # Document dates read straight off the page text — free, instant, and the
+        # primary source. The AI date pass below is only for pages this can't read.
+        text_page_dates: Dict[int, str] = {}
 
         with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
             pages = pdf.pages
             total_pages = len(pages) or 1
+            text_page_dates = self._scan_pages_for_dates(pages)
 
             # ---- Tier 1: deterministic (free) ----
             extracted_items = self._extract_pages_deterministic(
@@ -1738,22 +1742,42 @@ class SourcingService:
 
         # Date each price option in a multi-price conflict by the page it appeared
         # on, carried forward from the nearest preceding dated page (a merged file can
-        # hold several documents, each dated on its own page). Source the page→date map
-        # without ever adding a redundant AI call: if the whole-PDF AI tier already ran,
-        # reuse the dates it returned (valid even if its items didn't win — they're keyed
-        # by physical page); otherwise hit the lightweight date-only pass, but only when
-        # a multi-price conflict actually exists and AI is enabled.
+        # hold several documents, each dated on its own page). Sources, cheapest first:
+        #   1. the deterministic text scan (always ran, free);
+        #   2. dates the whole-PDF AI tier already returned, if it happened to run
+        #      (valid even if its items didn't win — they're keyed by physical page);
+        #   3. the AI date-only pass, and ONLY for a conflict that steps 1-2 could not
+        #      date at all (in practice: scanned/image-only pages with no text).
         has_price_conflict = any(len(g['variants']) > 1 for g in grouped.values())
-        if ai_page_dates is not None:
-            page_dates = ai_page_dates
-        elif has_price_conflict and pdf_ai.is_enabled():
-            try:
-                page_dates = pdf_ai.extract_page_dates(pdf_bytes)
-            except pdf_ai.PdfAiUnavailable as e:
-                logger.info(f"PDF AI date pass unavailable, prices will show N/A: {e}")
-                page_dates = {}
-        else:
-            page_dates = {}
+
+        # Deterministic text dates are the baseline; anything the AI tiers already
+        # returned (for free, inside the Tier 3 call) refines it. Neither costs a
+        # request here.
+        page_dates = dict(text_page_dates)
+        if ai_page_dates:
+            page_dates.update(ai_page_dates)
+
+        # Fall back to the AI date pass ONLY when a conflict genuinely can't be
+        # dated from the text. Previously this fired for every conflict and uploaded
+        # the whole PDF to the vision model — 18-30s on a merged file, up to ~6min
+        # with retries, all while the UI still showed "Matching products…". A page
+        # inherits the nearest dated page before it, so a page is only "missing" a
+        # date when no preceding page carries one either.
+        if has_price_conflict and ai_page_dates is None and pdf_ai.is_enabled():
+            resolved = self._effective_page_dates(page_dates, total_pages)
+            undated = {
+                v.get('page')
+                for g in grouped.values() if len(g['variants']) > 1
+                for v in g['variants']
+                if v.get('page') and not resolved.get(v['page'])
+            }
+            if undated:
+                _report(97, "Reading document dates…")
+                try:
+                    page_dates.update(pdf_ai.extract_page_dates(pdf_bytes))
+                except pdf_ai.PdfAiUnavailable as e:
+                    logger.info(f"PDF AI date pass unavailable, prices will show N/A: {e}")
+
         effective_dates = self._effective_page_dates(page_dates, total_pages)
 
         preview: list = []
@@ -2198,6 +2222,183 @@ class SourcingService:
             report(int(((page_index + 1) / total_pages) * 95),
                    f"Parsing page {page_index + 1} of {total_pages}")
         return extracted_items
+
+    # ------------------------------------------------------------------
+    # Deterministic document-date scanning (free; AI is the fallback)
+    # ------------------------------------------------------------------
+
+    # Month words as printed by the current supplier set (FR/EN/IT/ES/DE), plus the
+    # abbreviated forms with or without the trailing dot ("déc.", "avr.", "févr.").
+    _MONTH_WORDS = {
+        1:  ('january', 'januar', 'janvier', 'janv', 'jan', 'gennaio', 'gen', 'enero', 'ene'),
+        2:  ('february', 'februar', 'février', 'fevrier', 'févr', 'fevr', 'feb', 'febbraio', 'febrero'),
+        3:  ('march', 'märz', 'marz', 'mars', 'marzo', 'mar'),
+        4:  ('april', 'avril', 'avr', 'apr', 'aprile', 'abril', 'abr'),
+        5:  ('may', 'mai', 'maggio', 'mag', 'mayo'),
+        6:  ('june', 'juni', 'juin', 'jun', 'giugno', 'giu', 'junio'),
+        7:  ('july', 'juli', 'juillet', 'juil', 'jul', 'luglio', 'lug', 'julio'),
+        8:  ('august', 'août', 'aout', 'aug', 'agosto', 'ago'),
+        9:  ('september', 'septembre', 'sept', 'sep', 'settembre', 'set', 'septiembre'),
+        10: ('october', 'oktober', 'octobre', 'oct', 'ott', 'ottobre', 'octubre', 'okt'),
+        11: ('november', 'novembre', 'nov', 'noviembre'),
+        12: ('december', 'dezember', 'décembre', 'decembre', 'déc', 'dec', 'dicembre', 'dic', 'diciembre'),
+    }
+
+    # Lines whose dates are NEVER the document date — batch/lot expiry, shelf life,
+    # best-before. These sit inside the item table and would otherwise win on layouts
+    # that print no labelled document date.
+    _DATE_EXCLUDE_RE = re.compile(
+        r'\b(exp|exp\.|expiry|expiration|expire[sd]?|péremption|peremption|perim|'
+        r'scadenz|caducidad|verfall|haltbar|best\s*before|lot\b|lotto|batch|charge\s*n|'
+        r'date\s*exp|d\.?l\.?u\.?o)', re.IGNORECASE
+    )
+
+    # Lines that positively identify the document's own date; checked before the
+    # generic "first date on the page" fallback.
+    _DATE_KEYWORD_RE = re.compile(
+        r'(facture|invoice|fattura|rechnung|factura|bon\s*de\s*commande|purchase\s*order|'
+        r"date\s*d['’]?\s*[ée]mission|date\s*de\s*facturation|issue\s*date|invoice\s*date|"
+        r'order\s*date|date\s*de\s*commande|quotation|devis|offer|angebot|preventivo|'
+        r'\bdel\b|\bdate\b|\bdatum\b|\bfecha\b|\bdata\b|valid\s*from|valable)',
+        re.IGNORECASE
+    )
+
+    # 2026-04-16 / 2026/04/16
+    _DATE_ISO_RE = re.compile(r'\b(\d{4})[-/](\d{1,2})[-/](\d{1,2})\b')
+    # 16/04/2026, 16-04-2026, 16.04.2026, and 2-digit years (25-06-26 → Nordic)
+    _DATE_DMY_RE = re.compile(r'\b(\d{1,2})[-/.](\d{1,2})[-/.](\d{2}|\d{4})\b')
+    # 16 avr. 2026 / 26 déc. 2025 / 16 April 2026
+    _DATE_DMONY_RE = re.compile(r'\b(\d{1,2})\s+([A-Za-zÀ-ÿ]{3,10})\.?\s+(\d{4})\b')
+    # April 16, 2026
+    _DATE_MONDY_RE = re.compile(r'\b([A-Za-zÀ-ÿ]{3,10})\.?\s+(\d{1,2}),?\s+(\d{4})\b')
+
+    @classmethod
+    def _month_from_word(cls, word: str) -> Optional[int]:
+        w = (word or '').strip().lower().rstrip('.')
+        if not w:
+            return None
+        for num, names in cls._MONTH_WORDS.items():
+            if w in names:
+                return num
+        return None
+
+    @staticmethod
+    def _build_date(year: int, month: int, day: int) -> Optional[str]:
+        """Validate and format as YYYY-MM-DD; None if not a real calendar date."""
+        if year < 100:
+            # 2-digit year (Nordic "25-06-26"). These documents are contemporary,
+            # so map to 2000-2099 rather than guessing a century.
+            year += 2000
+        if not (1900 <= year <= 2100):
+            return None
+        try:
+            return datetime(year, month, day).strftime('%Y-%m-%d')
+        except ValueError:
+            return None
+
+    @classmethod
+    def _dates_in_line(cls, line: str) -> List[str]:
+        """Every valid date in one line of text, in printed order, as YYYY-MM-DD."""
+        found: List[Tuple[int, str]] = []
+        for m in cls._DATE_ISO_RE.finditer(line):
+            d = cls._build_date(int(m.group(1)), int(m.group(2)), int(m.group(3)))
+            if d:
+                found.append((m.start(), d))
+        for m in cls._DATE_DMY_RE.finditer(line):
+            # Day-first: every supplier in this importer is European. A value that
+            # can only be a month (>12 in the day slot) is treated as month-first
+            # rather than discarded.
+            a, b = int(m.group(1)), int(m.group(2))
+            day, month = (a, b) if a <= 31 and b <= 12 else (b, a)
+            d = cls._build_date(int(m.group(3)), month, day)
+            if d:
+                found.append((m.start(), d))
+        for m in cls._DATE_DMONY_RE.finditer(line):
+            month = cls._month_from_word(m.group(2))
+            if month:
+                d = cls._build_date(int(m.group(3)), month, int(m.group(1)))
+                if d:
+                    found.append((m.start(), d))
+        for m in cls._DATE_MONDY_RE.finditer(line):
+            month = cls._month_from_word(m.group(1))
+            if month:
+                d = cls._build_date(int(m.group(3)), month, int(m.group(2)))
+                if d:
+                    found.append((m.start(), d))
+        found.sort(key=lambda x: x[0])
+        # De-duplicate while preserving printed order (regexes can overlap).
+        seen, out = set(), []
+        for _, d in found:
+            if d not in seen:
+                seen.add(d)
+                out.append(d)
+        return out
+
+    @staticmethod
+    def _looks_doubled(text: str) -> bool:
+        """True for the bold/shadow doubled-character artifact ('DDaattee').
+
+        Uses the RATIO of adjacent duplicate letters to letters, the same test
+        ``_is_plausible_identifier`` applies, so ordinary text containing a couple
+        of natural double letters is never mistaken for the artifact.
+        """
+        letters = sum(1 for c in text if c.isalpha())
+        if letters < 6:
+            return False
+        doublings = sum(
+            1 for i in range(len(text) - 1)
+            if text[i].isalpha() and text[i].lower() == text[i + 1].lower()
+        )
+        return doublings / letters > 0.30
+
+    @classmethod
+    def _scan_page_date(cls, text: str) -> Optional[str]:
+        """The document date printed on one page, or None.
+
+        Lines carrying batch/lot/expiry wording are ignored outright. A date on a
+        line that names the document (FACTURE / Date d'émission / 'del' / Date:)
+        wins; otherwise the first remaining date on the page is used, which is where
+        every layout in this importer prints it.
+        """
+        if not text:
+            return None
+        keyword_hit: Optional[str] = None
+        first_hit: Optional[str] = None
+        for raw in text.splitlines():
+            # GHMC prints bold text as doubled characters ("DDaattee dd''éémmiissssiioonn")
+            # — collapse those so the keyword test sees real words. Only do this for
+            # lines that ARE doubled: _dedouble collapses digits too, so running it
+            # on normal text would rewrite "2022-11-05" into "202-1-05". Dates are
+            # still read from the raw line first (below) either way.
+            line = cls._dedouble(raw) if cls._looks_doubled(raw) else raw
+            if cls._DATE_EXCLUDE_RE.search(line) or cls._DATE_EXCLUDE_RE.search(raw):
+                continue
+            dates = cls._dates_in_line(raw) or cls._dates_in_line(line)
+            if not dates:
+                continue
+            if first_hit is None:
+                first_hit = dates[0]
+            if keyword_hit is None and (cls._DATE_KEYWORD_RE.search(line)
+                                        or cls._DATE_KEYWORD_RE.search(raw)):
+                keyword_hit = dates[0]
+        return keyword_hit or first_hit
+
+    def _scan_pages_for_dates(self, pages) -> Dict[int, str]:
+        """Deterministic ``{1-based page: 'YYYY-MM-DD'}`` for pages printing a date.
+
+        Free and instant — runs during the normal pdfplumber pass so the AI
+        date call is only ever needed for pages this cannot read.
+        """
+        dates: Dict[int, str] = {}
+        for i, page in enumerate(pages):
+            try:
+                text = page.extract_text() or ''
+            except Exception:
+                continue
+            found = self._scan_page_date(text)
+            if found:
+                dates[i + 1] = found
+        return dates
 
     @staticmethod
     def _effective_page_dates(page_dates: Dict[int, str], total_pages: int) -> Dict[int, str]:

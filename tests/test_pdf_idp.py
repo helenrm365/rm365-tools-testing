@@ -190,3 +190,88 @@ def test_service_charge_filter_keeps_real_products():
     assert svc._looks_like_service_charge("DC22", "Delivery Cannula 22G") is False
     assert svc._looks_like_service_charge("SVC1", "Service Kit") is False
     assert svc._looks_like_service_charge("", "") is False
+
+
+# ---------------------------------------------------------------------------
+# service: deterministic document-date scanning
+#
+# These strings are the real header lines of each supplier's layout. Reading the
+# date from text keeps the AI date pass (a whole-PDF vision call) off the hot
+# path — it used to fire for EVERY price conflict and stall the import for
+# 18-30s behind a "Matching products…" message.
+# ---------------------------------------------------------------------------
+@pytest.mark.parametrize("text,expected", [
+    # MED & SKIN — French month abbreviations
+    ("FACTURE N° 2025-00000001622 26 déc. 2025", "2025-12-26"),
+    ("BON DE COMMANDE N° 2026-00000000584 16 avr. 2026", "2026-04-16"),
+    ("BON DE COMMANDE N° 2026-00000000393 10 mars 2026", "2026-03-10"),
+    ("FACTURE N° 2026-00000000209 15 févr. 2026", "2026-02-15"),
+    # GDA — Italian "del", day-first numeric
+    ("n. 1/963 del 08/06/2026 Pagina 1", "2026-06-08"),
+    # GHMC — bold rendered as doubled characters
+    ("DDaattee dd''éémmiissssiioonn :: 15/10/2025 - (NF525) C0475", "2025-10-15"),
+    # Nordic — two-digit year, day-first
+    ("Birmingham, B3 3BY United Kingdom Date: 25-06-26", "2026-06-25"),
+    # YSkin — unlabelled date in the header row; the FIRST is the document date,
+    # the second is the payment due date.
+    ("FA20250053 12/07/2025 CL00002 20/08/2025 Virement 30 jours", "2025-07-12"),
+    # Hong Kong invoice — ISO with single-digit month/day
+    ("Date:\n2026-2-27 Payment Method:", "2026-02-27"),
+    # English long form
+    ("Invoice date: April 16, 2026", "2026-04-16"),
+    ("", None),
+    ("No date printed anywhere on this page", None),
+])
+def test_scan_page_date(text, expected):
+    assert SourcingService._scan_page_date(text) == expected
+
+
+def test_scan_page_date_ignores_batch_and_expiry_dates():
+    """Expiry/lot dates sit inside the item table and must never win."""
+    svc = SourcingService
+    # MED & SKIN prints an ISO expiry per line; the document date is the header.
+    text = (
+        "FACTURE N° 2025-00000001622 26 déc. 2025\n"
+        "1 BE005028 WiQ Eye Contour 008324 2028-05-31 5,00 Pc 0% 22,00\n"
+        "4 BE005057 PRX PLUS Gel 0076525 2028-03-05 10,00 pc 0% 145,00\n"
+    )
+    assert svc._scan_page_date(text) == "2025-12-26"
+    # With no document date at all, an expiry line must still not be used.
+    assert svc._scan_page_date("Batch Code26015A Batch Expiry 23/02/2028") is None
+    assert svc._scan_page_date("Lot no.: 253182102 Exp. date: 19-04-2028 Qty.: 43") is None
+
+
+def test_build_date_rejects_impossible_dates():
+    svc = SourcingService
+    assert svc._build_date(2026, 2, 30) is None   # no 30th of February
+    assert svc._build_date(2026, 13, 1) is None   # no month 13
+    assert svc._build_date(1850, 1, 1) is None    # out of plausible range
+    assert svc._build_date(26, 6, 25) == "2026-06-25"  # 2-digit year expands
+
+
+def test_effective_page_dates_carries_forward():
+    """A merged file dates each document on its first page; later pages inherit."""
+    svc = SourcingService
+    eff = svc._effective_page_dates({2: "2026-05-13", 5: "2026-05-18"}, 6)
+    assert eff.get(1) is None          # before the first dated page → N/A
+    assert eff[2] == "2026-05-13"
+    assert eff[4] == "2026-05-13"      # inherits the document it belongs to
+    assert eff[5] == "2026-05-18"
+    assert eff[6] == "2026-05-18"
+
+
+def test_looks_doubled_discriminates_artifact_from_normal_text():
+    svc = SourcingService
+    assert svc._looks_doubled("DDaattee dd''éémmiissssiioonn") is True
+    assert svc._looks_doubled("Date d'émission : 15/10/2025") is False
+    # Natural double letters must not trip it.
+    assert svc._looks_doubled("Firming Anti-Drying Body Cream 200 ml.") is False
+    assert svc._looks_doubled("n. 1/963 del 08/06/2026 Pagina 1") is False
+
+
+def test_date_scan_does_not_dedouble_normal_numeric_dates():
+    """_dedouble collapses digits too, so it must not touch un-doubled lines:
+    '2022-11-05' would otherwise become '202-1-05'."""
+    svc = SourcingService
+    assert svc._scan_page_date("Invoice date: 2022-11-05") == "2022-11-05"
+    assert svc._scan_page_date("FACTURE N° 2255 22/11/2025") == "2025-11-22"
