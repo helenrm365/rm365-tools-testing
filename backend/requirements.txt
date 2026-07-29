@@ -13,6 +13,9 @@ pandas
 openpyxl
 pdfplumber
 pypdfium2
+# PNG-encodes the pages pypdfium2 renders for supplier detection. Already pulled
+# in by pdfplumber; pinned here because we now import it directly.
+Pillow
 jinja2
 psycopg2-binary
 python-multipart

@@ -441,9 +441,11 @@ export async function importMappingsFile(file) {
  * BEFORE parsing. Only the first file is inspected server-side (its first page),
  * so this is cheap. Never throws for AI/parse problems — resolves with
  * ``enabled: false`` / no match so the caller falls back to manual selection.
+ * ``matched_supplier_*`` is a confident match (safe to auto-select);
+ * ``suggested_supplier_*`` is a weaker one the user should confirm first.
  * @param {File|File[]} files - one or more PDF files (first is representative)
  * @param {{ signal?: AbortSignal }} [opts]
- * @returns {Promise<{enabled: boolean, detected_name: string|null, matched_supplier_id: number|null, matched_supplier_name: string|null, confidence: number}>}
+ * @returns {Promise<{enabled: boolean, detected_name: string|null, matched_supplier_id: number|null, matched_supplier_name: string|null, suggested_supplier_id: number|null, suggested_supplier_name: string|null, confidence: number}>}
  */
 export async function identifyPdfSupplier(files, { signal } = {}) {
   const formData = new FormData();
@@ -458,7 +460,7 @@ export async function identifyPdfSupplier(files, { signal } = {}) {
  * the endpoint); the caller falls back to single-supplier detection.
  * @param {File[]} files - the PDF files, in order
  * @param {{ signal?: AbortSignal }} [opts]
- * @returns {Promise<{enabled: boolean, results: Array<{index: number, filename: string|null, enabled: boolean, detected_name: string|null, matched_supplier_id: number|null, matched_supplier_name: string|null, confidence: number}>}>}
+ * @returns {Promise<{enabled: boolean, results: Array<{index: number, filename: string|null, enabled: boolean, detected_name: string|null, matched_supplier_id: number|null, matched_supplier_name: string|null, suggested_supplier_id: number|null, suggested_supplier_name: string|null, confidence: number}>}>}
  */
 export async function identifyPdfSuppliers(files, { signal } = {}) {
   const formData = new FormData();

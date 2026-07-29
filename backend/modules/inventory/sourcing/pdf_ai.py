@@ -83,8 +83,26 @@ _PAGE_DATES_SCHEMA = {
 }
 
 
+# Chars of a page's text layer sent alongside its image during supplier detection.
+# The identity blocks (letterhead, addressee) are at the very top of the page — on
+# a real invoice the addressee and document number land inside the first ~250
+# chars — so this carries what the buyer cross-check needs several times over
+# while refusing to pay for the line-item table below it.
+_IDENTIFY_TEXT_CHARS = 1200
+
+
 class PdfAiUnavailable(Exception):
     """AI is disabled, unconfigured, or the request failed — caller should fall back."""
+
+
+def _png_part(data: bytes) -> Dict:
+    """Wrap PNG bytes as a Gemini inline-data part."""
+    return {
+        "inline_data": {
+            "mime_type": "image/png",
+            "data": base64.b64encode(data).decode("ascii"),
+        }
+    }
 
 
 # ----------------------------------------------------------------------------
@@ -163,28 +181,39 @@ def request_layout_profile(page_text: str) -> Dict:
     return _sanitise_profile(data)
 
 
-def identify_suppliers_from_pages(pdf_bytes: bytes, candidates: List[Dict], page_count: int) -> List[Dict]:
+def identify_suppliers_from_images(docs: List[Dict], candidates: List[Dict]) -> List[Dict]:
     """
-    Multimodal call — identify the issuing supplier for SEVERAL documents bundled
-    into ONE PDF, exactly one document per page, in a single request.
+    Multimodal call — identify the issuing supplier for SEVERAL documents in ONE
+    request, from images of their first pages that the CALLER has rendered.
 
-    On these documents the supplier's identity is usually a LOGO / letterhead
-    image rather than extractable text, so this hands Gemini the actual pages
-    (vision) instead of a text dump. The caller merges each document's first page
-    into one PDF (page 1 = first document, page 2 = second, …) and identifies them
-    all in a single request — one call, one page per document — which is both fast
-    and cheap and avoids the per-minute rate-limit bursts that make one-call-per-
-    file detection slow and inconsistent.
+    Why caller-rendered images and not the PDF itself: on these documents the
+    supplier is a LOGO / letterhead graphic and is frequently absent from the text
+    layer altogether, while the CUSTOMER's name sits in large, perfectly legible
+    text near the top. Handing over the PDF left the rasterisation to the provider,
+    at its own modest per-page resolution — and thin light-grey line-art logos at
+    that resolution are a borderline read. A borderline read loses to clean text,
+    so detection would silently answer with the buyer. The caller instead renders
+    just the letterhead band of each first page (see
+    ``service._render_first_pages``), sized to a fixed image-tile budget, so the
+    logo is both the highest-fidelity thing in the request and the cheapest useful
+    framing of it.
 
-    Returns ``[{"page", "detected_name", "matched_code", "confidence"}]`` with
-    1-based page numbers matching the merged PDF (pages the model omitted are
-    simply absent; the caller treats those as "no match"). Raises PdfAiUnavailable
-    on any problem.
+    ``docs`` is ``[{'image_png': bytes, 'text': str}, ...]`` in caller order; every
+    entry needs an ``image_png``. Each document is LABELLED in the request and
+    answers come back keyed by that 1-based label, so one document's answer can no
+    longer be attributed to its neighbour (the previous merged-PDF page numbering
+    could silently shift).
+
+    Returns ``[{"document", "detected_name", "buyer_name", "matched_code",
+    "confidence"}]`` — documents the model omitted are simply absent and the caller
+    treats those as "no match". Raises PdfAiUnavailable on any problem.
     """
     if not is_enabled():
         raise PdfAiUnavailable("AI disabled or no GEMINI_API_KEY configured")
-    if not pdf_bytes:
-        raise PdfAiUnavailable("empty pdf")
+    if not docs:
+        raise PdfAiUnavailable("no document images")
+    if any(not d.get("image_png") for d in docs):
+        raise PdfAiUnavailable("a document is missing its rendered image")
 
     known_lines = "\n".join(
         f"- {str(c.get('code', '')).strip()}: {str(c.get('name', '')).strip()}"
@@ -193,30 +222,47 @@ def identify_suppliers_from_pages(pdf_bytes: bytes, candidates: List[Dict], page
     ) or "(no known suppliers)"
 
     prompt = (
-        "This PDF bundles the first page of several SEPARATE, UNRELATED supplier "
-        "documents (price lists / invoices / quotations) — exactly ONE document per "
-        "page, in order (page 1 is the first document, page 2 the second, and so on).\n"
-        "For EACH page, identify the SUPPLIER: the vendor / seller ISSUING that "
-        "document — the company whose products and prices are listed. On most of "
-        "these pages the supplier is shown as a LOGO, letterhead, or branding image "
-        "at the top rather than as plain text, so READ IT FROM THE IMAGE as well as "
-        "from any text. This is NOT the customer / buyer / 'bill to' / 'ship to' "
-        "party, which you must ignore.\n"
-        "Treat every page completely independently — a page's supplier depends ONLY "
-        "on that page.\n\n"
+        f"You are identifying the SUPPLIER that ISSUED each of {len(docs)} SEPARATE, "
+        "UNRELATED business documents (price lists / invoices / quotations / order "
+        "confirmations). Each document is given below as an ENLARGED image of the "
+        "TOP BAND of its first page — where letterheads and addressee blocks sit — "
+        "followed by that page's extracted text layer.\n\n"
+        "The SUPPLIER is the vendor / seller that issued the document — the company "
+        "whose products and prices are listed.\n\n"
+        "CRITICAL, because of how these documents are laid out:\n"
+        "- The supplier is normally shown ONLY as a LOGO or letterhead graphic "
+        "(often top-left or centred, sometimes thin, pale or stylised). It is very "
+        "often COMPLETELY ABSENT from the text layer. Read it from the IMAGE.\n"
+        "- The text layer, by contrast, almost always DOES carry the CUSTOMER's "
+        "name and address in large clean type near the top. So never assume that a "
+        "company name you find in the text is the supplier.\n"
+        "- An addressee block — or one labelled 'Numéro de client', 'Client', "
+        "'Cliente', 'Customer', 'Bill to', 'Ship to', 'Invoice to', 'Deliver to' — "
+        "is the BUYER, whichever way round the page places it.\n"
+        "- 'BON DE COMMANDE', 'FACTURE', 'FATTURA', 'INVOICE' and 'ORDER "
+        "CONFIRMATION' documents are issued BY the seller TO its client, so the "
+        "party named in the addressee block is NOT the issuer.\n\n"
+        "Treat every document completely independently — its supplier depends ONLY "
+        "on that document.\n\n"
         "Decide whether each supplier is one of these KNOWN suppliers "
         "(format 'CODE: Name'):\n"
         f"{known_lines}\n\n"
-        "For EVERY page return one object with:\n"
-        "- page: the 1-based page number.\n"
-        "- detected_name: the supplier's name as shown on that page (empty string "
-        "if you genuinely cannot tell).\n"
+        "For EVERY document return one object with:\n"
+        "- document: its 1-based number, as labelled in this request.\n"
+        "- detected_name: the ISSUING supplier's name (empty string if you "
+        "genuinely cannot tell).\n"
+        "- buyer_name: the customer / addressee's name (empty string if the "
+        "document names none). Always fill this in when an addressee block exists — "
+        "it is used to verify you have not swapped the two parties.\n"
         "- matched_code: the CODE of the known supplier it clearly is, or '' if it "
         "does not confidently match any known supplier (a different legal entity, a "
         "new supplier, or you are unsure). Match on company identity, tolerating "
-        "minor spelling/suffix differences (Ltd, GmbH, S.r.l.).\n"
-        "- confidence: 0.0-1.0, how sure you are of detected_name.\n\n"
-        f"This PDF has {int(page_count)} page(s); return exactly one entry per page."
+        "minor spelling/suffix differences (Ltd, SPRL, BVBA, GmbH, S.r.l.).\n"
+        "- confidence: 0.0-1.0 that detected_name really is the ISSUING supplier — "
+        "NOT merely that you transcribed some company name correctly. If the "
+        "letterhead graphic is illegible or absent and you are inferring the issuer "
+        "from text alone, use a value below 0.5.\n\n"
+        f"Return exactly one entry per document ({len(docs)} in total)."
     )
 
     schema = {
@@ -227,30 +273,39 @@ def identify_suppliers_from_pages(pdf_bytes: bytes, candidates: List[Dict], page
                 "items": {
                     "type": "object",
                     "properties": {
-                        "page": {"type": "number"},
+                        "document": {"type": "number"},
                         "detected_name": {"type": "string"},
+                        "buyer_name": {"type": "string"},
                         "matched_code": {"type": "string"},
                         "confidence": {"type": "number"},
                     },
-                    "required": ["page"],
+                    "required": ["document"],
                 },
             },
         },
         "required": ["results"],
     }
 
-    b64 = base64.b64encode(pdf_bytes).decode("ascii")
-    parts = [
-        {"text": prompt},
-        {"inline_data": {"mime_type": "application/pdf", "data": b64}},
-    ]
-    data = _generate(parts=parts, schema=schema, timeout=120.0)
+    parts: List[Dict] = [{"text": prompt}]
+    for position, doc in enumerate(docs, start=1):
+        parts.append({"text": f"===== DOCUMENT {position} — letterhead band, enlarged ====="})
+        parts.append(_png_part(doc["image_png"]))
+        text = (doc.get("text") or "").strip()
+        if text:
+            parts.append({"text": (
+                f"===== DOCUMENT {position} — text layer (the letterhead is often "
+                "MISSING from this; the customer usually is not) =====\n"
+                + text[:_IDENTIFY_TEXT_CHARS]
+            )})
+
+    data = _generate(parts=parts, schema=schema, timeout=180.0)
     out: List[Dict] = []
     for r in (data.get("results") or []):
         if not isinstance(r, dict):
             continue
-        page = _coerce_page(r.get("page"))  # 1-based int, or None if unusable
-        if page is None:
+        # 1-based label into `docs`; drop anything we can't attribute confidently.
+        position = _coerce_page(r.get("document"))
+        if position is None or position > len(docs):
             continue
         conf = r.get("confidence")
         try:
@@ -258,8 +313,9 @@ def identify_suppliers_from_pages(pdf_bytes: bytes, candidates: List[Dict], page
         except (TypeError, ValueError):
             conf = 0.0
         out.append({
-            "page": page,
+            "document": position,
             "detected_name": str(r.get("detected_name", "") or "").strip(),
+            "buyer_name": str(r.get("buyer_name", "") or "").strip(),
             "matched_code": str(r.get("matched_code", "") or "").strip(),
             "confidence": conf,
         })
@@ -444,10 +500,22 @@ def _generate(parts: List[Dict], schema: Dict, timeout: float = 60.0) -> Dict:
         try:
             payload = resp.json()
             text = payload["candidates"][0]["content"]["parts"][0]["text"]
-            return json.loads(text)
+            result = json.loads(text)
         except (KeyError, IndexError, ValueError, TypeError) as e:
             # A 200 already cost tokens; don't retry a malformed body.
             raise PdfAiUnavailable(f"Unexpected Gemini response: {e}") from e
+
+        # Log what the call actually cost. Image token spend is easy to get wrong
+        # by reasoning about DPI (the model bills by 768px tiles), so record the
+        # real number rather than trusting an estimate.
+        usage = payload.get("usageMetadata") or {}
+        if usage:
+            logger.info(
+                "Gemini %s: %s prompt tokens (%s candidate) for %d part(s)",
+                model, usage.get("promptTokenCount"),
+                usage.get("candidatesTokenCount"), len(parts),
+            )
+        return result
 
     # Unreachable: the loop always returns or raises on its final attempt.
     raise PdfAiUnavailable("Gemini retries exhausted")

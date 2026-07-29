@@ -3535,12 +3535,16 @@ function handlePdfFileSelect(e) {
  *   - proceed=true   → parse with the returned supplierId.
  *
  * Behaviour:
- *   • No supplier chosen + detected a KNOWN supplier → auto-select it, continue.
+ *   • No supplier chosen + CONFIDENTLY detected a KNOWN supplier → auto-select it,
+ *     continue.
+ *   • No supplier chosen + a WEAK match to a known supplier → confirm it first
+ *     (the backend only suggests below its confidence bar, and importing against
+ *     a coin-flip writes prices to the wrong supplier).
  *   • No supplier chosen + detected an UNKNOWN supplier → offer to create it
  *     (redirect to the Suppliers tab), then stop.
  *   • No supplier chosen + nothing detected → ask the user to pick one, stop.
- *   • Supplier chosen but the AI detects a DIFFERENT known supplier → confirm
- *     switch-or-keep, continue with the chosen answer.
+ *   • Supplier chosen but the AI confidently detects a DIFFERENT known supplier →
+ *     confirm switch-or-keep, continue with the chosen answer.
  *   • Otherwise → continue with the user's selection.
  *
  * @param {{ selectedId: number|null, files: File[], signal?: AbortSignal, closeModal?: Function }} opts
@@ -3559,6 +3563,8 @@ async function _reconcilePdfSupplier({ selectedId, files, signal, closeModal }) 
   const enabled = !!detection?.enabled;
   const matchedId = detection?.matched_supplier_id || null;
   const matchedName = detection?.matched_supplier_name || null;
+  const suggestedId = detection?.suggested_supplier_id || null;
+  const suggestedName = detection?.suggested_supplier_name || null;
   const detectedName = (detection?.detected_name || '').trim();
 
   // --- No supplier selected yet ---
@@ -3566,6 +3572,22 @@ async function _reconcilePdfSupplier({ selectedId, files, signal, closeModal }) 
     if (matchedId) {
       showToast(`Detected supplier: ${matchedName}`, 'success');
       return { proceed: true, supplierId: matchedId };
+    }
+    if (suggestedId) {
+      // A known supplier, but the letterhead read was weak — get a yes before
+      // importing, since the cost of being wrong is prices on the wrong supplier.
+      const useIt = await confirmModal({
+        title: 'Confirm supplier',
+        message: `This looks like it’s from <strong>${escapeHtml(suggestedName)}</strong>, `
+          + `but the detection wasn’t confident. Import it as ${escapeHtml(suggestedName)}?`,
+        confirmText: `Import as ${suggestedName}`,
+        cancelText: 'Choose manually',
+        confirmVariant: 'primary',
+        icon: 'fas fa-question-circle',
+      });
+      if (useIt) return { proceed: true, supplierId: suggestedId };
+      showToast('Please choose the supplier from the list.', 'info');
+      return { proceed: false };
     }
     if (enabled && detectedName) {
       // A supplier was read off the PDF but it isn't one we know — steer the
@@ -3609,6 +3631,8 @@ async function _reconcilePdfSupplier({ selectedId, files, signal, closeModal }) 
   }
 
   // Selection matches the detection, or detection was inconclusive — trust it.
+  // A merely SUGGESTED supplier deliberately doesn't prompt here: an explicit
+  // choice by the user outranks a low-confidence guess.
   return { proceed: true, supplierId: selectedId };
 }
 
@@ -3720,9 +3744,13 @@ async function _autoDetectAndImport() {
       detectedName: (r.detected_name || '').trim(),
       matchedSupplierId: r.matched_supplier_id || null,
       matchedSupplierName: r.matched_supplier_name || null,
+      suggestedSupplierId: r.suggested_supplier_id || null,
+      suggestedSupplierName: r.suggested_supplier_name || null,
     };
   });
 
+  // Only CONFIDENT matches count here — a suggested (low-confidence) supplier
+  // falls through to the assignment modal, pre-filled, for the user to confirm.
   const matchedIds = new Set(rows.filter(r => r.matchedSupplierId).map(r => r.matchedSupplierId));
   const allMatchedOne = rows.length > 0 && matchedIds.size === 1 && rows.every(r => r.matchedSupplierId);
 
@@ -3861,7 +3889,7 @@ async function _runGroupedImport(groups) {
  * leave out any file they don't want. Also offers an "Add a supplier" shortcut to
  * the Suppliers tab for PDFs from a supplier that doesn't exist yet.
  *
- * @param {{ rows: Array<{file:File, fileName:string, detectedName:string, matchedSupplierId:number|null, matchedSupplierName:string|null}>, suppliers: Array<{id:number, name:string, code?:string}> }} opts
+ * @param {{ rows: Array<{file:File, fileName:string, detectedName:string, matchedSupplierId:number|null, matchedSupplierName:string|null, suggestedSupplierId?:number|null, suggestedSupplierName?:string|null}>, suppliers: Array<{id:number, name:string, code?:string}> }} opts
  * @returns {Promise<{action:'continue', assignments:Array<{file:File, fileName:string, supplierId:number, supplierName:string}>} | {action:'cancel'} | {action:'create'}>}
  */
 function _promptSupplierAssignments({ rows, suppliers }) {
@@ -3874,13 +3902,17 @@ function _promptSupplierAssignments({ rows, suppliers }) {
     const comboItems = () => [SKIP, ...supplierList];
 
     // Committed choice per row: a supplier id, or null = skip. Seeded from the
-    // AI's match. The text inputs are just search boxes; this is the source of truth.
-    const rowSelection = rows.map(r => r.matchedSupplierId || null);
+    // AI's match, or from a low-confidence suggestion (which the user is being
+    // asked to confirm precisely because it might be wrong).
+    // The text inputs are just search boxes; this is the source of truth.
+    const rowSelection = rows.map(r => r.matchedSupplierId || r.suggestedSupplierId || null);
 
     const rowsHtml = rows.map((r, i) => {
       let detail;
       if (r.matchedSupplierId) {
         detail = `<i class="fas fa-check-circle" style="color:var(--color-success,#16a34a);"></i> Detected: <strong>${escapeHtml(r.matchedSupplierName || '')}</strong>`;
+      } else if (r.suggestedSupplierId) {
+        detail = `<i class="fas fa-question-circle" style="color:var(--color-warning,#d97706);"></i> Probably <strong>${escapeHtml(r.suggestedSupplierName || '')}</strong> — please confirm`;
       } else if (r.detectedName) {
         detail = `<i class="fas fa-exclamation-circle" style="color:var(--color-warning,#d97706);"></i> Looks like “${escapeHtml(r.detectedName)}” — not one of your suppliers`;
       } else {

@@ -32,16 +32,55 @@ _IDENTIFY_EMPTY = {
     'detected_name': None,
     'matched_supplier_id': None,
     'matched_supplier_name': None,
+    # A known supplier the detection landed on but wasn't confident enough to
+    # auto-select — the UI pre-fills it and asks the user to confirm. See
+    # _IDENTIFY_MATCH_MIN_CONFIDENCE.
+    'suggested_supplier_id': None,
+    'suggested_supplier_name': None,
     'confidence': 0.0,
 }
 
 # Max documents identified per AI request in the multi-file importer. Each
-# document contributes ONE page (its first) to a bundled PDF sent in a single
-# multimodal call, so this also caps pages-per-call. One request handles the
-# common case; larger uploads split into a few calls so a single request never
-# gets unwieldy — without reintroducing the per-file rate-limit bursts that made
+# document contributes one letterhead image plus a short text excerpt — roughly
+# 800 tokens, so a full request of 15 costs ~12k. One request handles the common
+# case; larger uploads split into a few calls so a single request never gets
+# unwieldy — without reintroducing the per-file rate-limit bursts that made
 # one-call-per-file detection slow and inconsistent.
-_IDENTIFY_PAGES_PER_CALL = 15
+_IDENTIFY_DOCS_PER_CALL = 15
+
+# A detection must be at least this confident before its supplier is selected
+# WITHOUT asking. Below it the match is reported as a suggestion the user
+# confirms; see _apply_supplier_detection. Previously any match auto-selected, so
+# a 0.3 guess and a 0.95 read were acted on identically.
+_IDENTIFY_MATCH_MIN_CONFIDENCE = 0.75
+
+# Rendering settings for detection's first-page image.
+#
+# ONE image per document: the top _LETTERHEAD_BAND_FRACTION of the page, which is
+# where letterheads live. A whole-page image on top of this was redundant — the
+# band already shows both the letterhead AND the addressee block beside it, and
+# the page text carries the addressee anyway — so it only cost tokens.
+#
+# Size is chosen by TILE BUDGET, not by DPI. The model bills images by 768px
+# tiles (_TILE_PX), so a 1785px-wide render costs three tiles while wasting a
+# third of the last one. Fitting the band to exactly _BAND_TILE_BUDGET tiles
+# across (and one down) buys the most resolution per token: on A4 that lands at
+# ~186 DPI for 2 tiles, far above the provider's own PDF rasterisation, which is
+# what made pale line-art logos a coin-flip in the first place.
+_TILE_PX = 768
+_BAND_TILE_BUDGET = 2
+_LETTERHEAD_BAND_FRACTION = 0.35
+# Guard against absurd upscaling of a tiny page (a 100pt-wide label would
+# otherwise render at scale 15 and gain nothing but blur).
+_MAX_RENDER_SCALE = 4.0
+
+# Legal-form suffixes ignored when comparing two company names. Not an exhaustive
+# registry list — just the forms that turn up on these suppliers' documents.
+_COMPANY_SUFFIXES = frozenset({
+    'ltd', 'limited', 'llc', 'inc', 'incorporated', 'plc', 'co', 'company',
+    'corp', 'corporation', 'gmbh', 'ag', 'sa', 'sas', 'sarl', 'sprl', 'bvba',
+    'bv', 'nv', 'srl', 'spa', 'ab', 'as', 'aps', 'oy', 'kg', 'ug', 'sl', 'lda',
+})
 
 
 def dedupe_pdf_blobs(pdf_blobs: List[bytes]) -> Tuple[List[bytes], int]:
@@ -138,47 +177,129 @@ def merge_pdfs(pdf_blobs: List[bytes], progress_cb=None) -> bytes:
         merged.close()
 
 
-def _merge_first_pages(chunk: List[Tuple[int, bytes]]) -> Tuple[Optional[bytes], List[int]]:
-    """Bundle the FIRST PAGE of each file in ``chunk`` into one PDF for a single
-    multimodal supplier-detection call.
+def _render_first_pages(chunk: List[Tuple[int, bytes]]) -> Tuple[List[Dict], List[int]]:
+    """Rasterise the FIRST PAGE of each file in ``chunk`` for supplier detection.
 
-    ``chunk`` is ``[(file_index, pdf_bytes), ...]``. Returns
-    ``(merged_pdf_bytes, page_map)`` where ``page_map[k]`` is the original
-    ``file_index`` that produced the merged PDF's (k+1)-th page — so the caller
-    can map the model's per-page answers back to files. Files that are empty,
-    unreadable, or have no pages are skipped (they simply won't appear in
-    page_map). Returns ``(None, [])`` when nothing usable remained.
+    ``chunk`` is ``[(file_index, pdf_bytes), ...]``. Returns ``(docs, index_map)``
+    where ``docs`` is the shape ``pdf_ai.identify_suppliers_from_images`` expects
+    and ``index_map[k]`` is the original ``file_index`` behind ``docs[k]`` — so the
+    model's per-document answers map back to files.
+
+    We render here instead of shipping the PDF to the model because the supplier's
+    identity is a letterhead GRAPHIC: the provider rasterises PDF pages at its own
+    modest resolution, where thin line-art logos become a coin-flip — and a
+    coin-flip loses to the customer's name, which is sitting right there in clean
+    text. Each file yields ONE image — the letterhead band, sized to a fixed tile
+    budget (see _BAND_TILE_BUDGET) — plus the page's text, which carries the
+    addressee block for the buyer cross-check.
+
+    Files that are empty, unreadable, or unrenderable are skipped — they simply
+    won't appear in ``index_map``. Detection only; line-item parsing still reads
+    the PDF itself.
     """
     import io
     import pypdfium2 as pdfium
 
-    merged = pdfium.PdfDocument.new()
-    sources = []
-    page_map: List[int] = []
-    try:
-        for file_index, blob in chunk:
-            if not blob:
+    def _fitted_png(page, height_fraction: float) -> bytes:
+        """Render the top ``height_fraction`` of ``page`` to fill the tile budget.
+
+        crop=(left, bottom, right, top) trims that many points off each side, so
+        trimming the bottom leaves the top band. The scale is derived from the
+        crop's own point size so the result fits _BAND_TILE_BUDGET x 1 tiles
+        whatever the page geometry — a fixed scale would silently cost an extra
+        tile row on a wider page.
+        """
+        width_pt = page.get_width()
+        band_pt = page.get_height() * height_fraction
+        if width_pt <= 0 or band_pt <= 0:
+            raise ValueError("page has no usable dimensions")
+        scale = min(
+            (_TILE_PX * _BAND_TILE_BUDGET) / width_pt,
+            _TILE_PX / band_pt,
+            _MAX_RENDER_SCALE,
+        )
+        crop = (0, page.get_height() - band_pt, 0, 0) if height_fraction < 1 else (0, 0, 0, 0)
+        bitmap = page.render(scale=scale, crop=crop)
+        try:
+            # to_pil() wraps the bitmap's own buffer, so the bitmap has to outlive
+            # the encode — write the PNG before closing it.
+            image = bitmap.to_pil()
+            buf = io.BytesIO()
+            image.save(buf, format="PNG")
+            image.close()
+            return buf.getvalue()
+        finally:
+            bitmap.close()
+
+    docs: List[Dict] = []
+    index_map: List[int] = []
+    for file_index, blob in chunk:
+        if not blob:
+            continue
+        src = None
+        try:
+            src = pdfium.PdfDocument(blob)
+            if len(src) == 0:
                 continue
+            page = src[0]
             try:
-                src = pdfium.PdfDocument(blob)
-                if len(src) == 0:
-                    src.close()
-                    continue
-                sources.append(src)
-                merged.import_pages(src, [0])  # first page only — keeps tokens low
-            except Exception as e:  # noqa: BLE001 — a bad file must not break detection
-                logger.info("identify_pdf_suppliers: skipping unreadable file: %s", e)
-                continue
-            page_map.append(file_index)
-        if not page_map:
-            return None, []
-        buf = io.BytesIO()
-        merged.save(buf)
-        return buf.getvalue(), page_map
-    finally:
-        for src in sources:
-            src.close()
-        merged.close()
+                image_png = _fitted_png(page, _LETTERHEAD_BAND_FRACTION)
+            except Exception as e:  # noqa: BLE001 — fall back to the whole page
+                logger.info("identify_pdf_suppliers: letterhead crop failed: %s", e)
+                image_png = _fitted_png(page, 1.0)  # same tile budget, less detail
+
+            # Supporting signal only (it usually omits the letterhead entirely);
+            # its real job is carrying the addressee block for the buyer check.
+            page_text = ''
+            try:
+                textpage = page.get_textpage()
+                page_text = (textpage.get_text_range() or '').strip()
+                textpage.close()
+            except Exception as e:  # noqa: BLE001 — the image carries the detection
+                logger.debug("identify_pdf_suppliers: no text layer: %s", e)
+
+            docs.append({'image_png': image_png, 'text': page_text})
+            index_map.append(file_index)
+        except Exception as e:  # noqa: BLE001 — a bad file must not break detection
+            logger.info("identify_pdf_suppliers: skipping unreadable file: %s", e)
+            continue
+        finally:
+            if src is not None:
+                src.close()
+    return docs, index_map
+
+
+def _company_tokens(name: str) -> frozenset:
+    """Significant lower-case word tokens of a company name.
+
+    Drops punctuation, the ``&``/``and`` connector and legal-form suffixes, so
+    'MED & SKIN SPRL' and 'Med and Skin' both reduce to ``{med, skin}``.
+    """
+    cleaned = re.sub(r'[^0-9a-z]+', ' ', (name or '').lower())
+    return frozenset(
+        t for t in cleaned.split()
+        if t != 'and' and t not in _COMPANY_SUFFIXES
+    )
+
+
+def _same_company(a: str, b: str) -> bool:
+    """True when two names plausibly denote the SAME company.
+
+    Used to catch a detection that answered with the buyer instead of the
+    supplier, so it tolerates legal-form and punctuation differences ('Reliable
+    Medicare LTD' vs 'Reliable Medicare') while staying conservative: one shared
+    word is never enough, because unrelated firms share words like 'medical',
+    'pharma' or 'group'.
+    """
+    tokens_a, tokens_b = _company_tokens(a), _company_tokens(b)
+    if not tokens_a or not tokens_b:
+        return False
+    if tokens_a == tokens_b:
+        return True
+    # One name fully contains the other, and the shorter is specific enough that
+    # the overlap can't be coincidental.
+    smaller, larger = sorted((tokens_a, tokens_b), key=len)
+    return len(smaller) >= 2 and smaller <= larger
 
 
 class SourcingService:
@@ -1478,20 +1599,22 @@ class SourcingService:
         """
         Best-effort AI guess of which supplier a PDF price list belongs to.
 
-        Hands the first page to the AI's vision model (the supplier is usually a
-        LOGO / letterhead image, not extractable text) and matches it to one of
-        the existing suppliers. Shares one implementation with the multi-file
-        detector so a file detects the same alone as it does inside a pack. Never
-        raises for AI/parse problems — degrades to ``enabled=False`` / no match so
-        the importer can fall back to manual supplier selection.
+        Renders the first page and hands it to the AI's vision model (the supplier
+        is usually a LOGO / letterhead image, not extractable text), then matches it
+        to one of the existing suppliers. Shares one implementation with the
+        multi-file detector so a file detects the same alone as it does inside a
+        pack. Never raises for AI/parse problems — degrades to ``enabled=False`` /
+        no match so the importer can fall back to manual supplier selection.
 
         Returns:
           {
-            'enabled': bool,                    # AI tiers configured & switched on
-            'detected_name': str | None,        # supplier name read off the PDF
-            'matched_supplier_id': int | None,  # a known supplier it maps to
+            'enabled': bool,                      # AI tiers configured & switched on
+            'detected_name': str | None,          # supplier name read off the PDF
+            'matched_supplier_id': int | None,    # confident match to a known supplier
             'matched_supplier_name': str | None,
-            'confidence': float,                # 0.0-1.0
+            'suggested_supplier_id': int | None,  # weaker match — confirm before use
+            'suggested_supplier_name': str | None,
+            'confidence': float,                  # 0.0-1.0
           }
         """
         batch = self.identify_pdf_suppliers([(None, pdf_bytes)])
@@ -1507,14 +1630,16 @@ class SourcingService:
         """
         Per-file supplier detection for a multi-PDF upload.
 
-        ``pdf_files`` is ``[(filename, pdf_bytes), ...]`` in upload order. The
-        supplier's identity on these documents is usually a LOGO / letterhead
-        image rather than extractable text, so detection has to SEE each page.
-        The first page of every file is bundled into one PDF and identified in a
-        SINGLE multimodal (vision) call — the same "merge, then one AI call"
-        approach the importer uses — so N files cost one request, not N. Larger
-        uploads split into a few calls (see ``_IDENTIFY_PAGES_PER_CALL``). Sending
-        only first pages keeps token cost low; one bundled request keeps it fast
+        ``pdf_files`` is ``[(filename, pdf_bytes), ...]`` in upload order. Note
+        that the filename is carried through for LABELLING only — detection reads
+        the document, never its name.
+
+        The supplier's identity on these documents is usually a LOGO / letterhead
+        image rather than extractable text, so detection has to SEE each page. The
+        first page of every file is rendered to images here (see
+        ``_render_first_pages``) and identified in a SINGLE multimodal (vision)
+        call, so N files cost one request, not N. Larger uploads split into a few
+        calls (see ``_IDENTIFY_DOCS_PER_CALL``). One bundled request keeps it fast
         and dodges the per-minute rate-limit bursts that made one-call-per-file
         detection slow and different-every-time.
 
@@ -1548,35 +1673,70 @@ class SourcingService:
         supplier_by_code = {str(s['code']).strip().lower(): s for s in suppliers}
 
         # One vision call per chunk of files (usually a single call). Each chunk's
-        # first pages are merged into one PDF; a failing chunk leaves its files as
+        # first pages are rendered to images; a failing chunk leaves its files as
         # no-match rather than aborting the whole batch.
         total = len(pdf_files)
-        for start in range(0, total, _IDENTIFY_PAGES_PER_CALL):
-            chunk = [(i, pdf_files[i][1]) for i in range(start, min(start + _IDENTIFY_PAGES_PER_CALL, total))]
-            merged, page_map = _merge_first_pages(chunk)
-            if not merged or not page_map:
+        for start in range(0, total, _IDENTIFY_DOCS_PER_CALL):
+            chunk = [(i, pdf_files[i][1]) for i in range(start, min(start + _IDENTIFY_DOCS_PER_CALL, total))]
+            docs, index_map = _render_first_pages(chunk)
+            if not docs:
                 continue
 
             try:
-                ai_results = pdf_ai.identify_suppliers_from_pages(merged, candidates, len(page_map))
+                ai_results = pdf_ai.identify_suppliers_from_images(docs, candidates)
             except pdf_ai.PdfAiUnavailable as e:
                 logger.info(f"identify_pdf_suppliers: AI unavailable for a chunk: {e}")
                 continue
 
             for r in ai_results:
-                page = r.get('page')  # 1-based, into this chunk's merged PDF
-                if not isinstance(page, int) or page < 1 or page > len(page_map):
+                position = r.get('document')  # 1-based, into this chunk's docs
+                if not isinstance(position, int) or position < 1 or position > len(index_map):
                     continue
-                entry = results_by_index[page_map[page - 1]]
-                entry['detected_name'] = r.get('detected_name') or None
-                entry['confidence'] = r.get('confidence', 0.0)
-                code = (r.get('matched_code') or '').strip().lower()
-                match = supplier_by_code.get(code) if code else None
-                if match:
-                    entry['matched_supplier_id'] = match['id']
-                    entry['matched_supplier_name'] = match['name']
+                entry = results_by_index[index_map[position - 1]]
+                self._apply_supplier_detection(entry, r, supplier_by_code)
 
         return {'enabled': True, 'results': _ordered()}
+
+    def _apply_supplier_detection(self, entry: Dict, result: Dict,
+                                  supplier_by_code: Dict[str, Dict]) -> None:
+        """Fold one model answer into a file's detection entry, behind two guards.
+
+        Guard 1 — BUYER CROSS-CHECK. These documents print the supplier as a
+        letterhead graphic but the CUSTOMER as clean text, so the classic failure
+        is answering with the addressee. The model now names both parties; when
+        they come back as the same company it has swapped them and the answer
+        carries no information, so we discard it whole. Keeping it would be worse
+        than nothing: the importer would offer to create the customer as a new
+        supplier. Dropping it leaves "no supplier detected", which asks the user.
+
+        Guard 2 — CONFIDENCE. Only a match at or above
+        ``_IDENTIFY_MATCH_MIN_CONFIDENCE`` may be selected without asking; a weaker
+        one is reported as ``suggested_supplier_*``, which pre-fills the UI but
+        still requires confirmation.
+        """
+        detected = (result.get('detected_name') or '').strip()
+        buyer = (result.get('buyer_name') or '').strip()
+        confidence = result.get('confidence') or 0.0
+
+        if detected and buyer and _same_company(detected, buyer):
+            logger.info(
+                "identify_pdf_suppliers: discarding detection — supplier %r is the "
+                "same company as buyer %r (parties swapped)", detected, buyer)
+            return
+
+        entry['detected_name'] = detected or None
+        entry['confidence'] = confidence
+
+        code = (result.get('matched_code') or '').strip().lower()
+        match = supplier_by_code.get(code) if code else None
+        if not match:
+            return
+        if confidence >= _IDENTIFY_MATCH_MIN_CONFIDENCE:
+            entry['matched_supplier_id'] = match['id']
+            entry['matched_supplier_name'] = match['name']
+        else:
+            entry['suggested_supplier_id'] = match['id']
+            entry['suggested_supplier_name'] = match['name']
 
     def import_matrix_pdf(self, pdf_bytes: bytes, supplier_id: int, progress_cb=None,
                           progress_floor: int = 0) -> Dict:

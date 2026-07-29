@@ -8,6 +8,7 @@ a database, network, or real PDFs. End-to-end extraction on the real sample PDFs
 (GHMC / GDA / MED&SKIN / YSkin) is exercised separately by dropping those files
 into tests/fixtures/ and running test_pdf_idp_fixtures (see bottom of file).
 """
+import io
 import sys
 import os
 import importlib
@@ -113,6 +114,99 @@ def test_public_calls_raise_when_disabled(monkeypatch):
         pdf_ai.request_layout_profile("ITEM UNIT PRICE")
     with pytest.raises(pdf_ai.PdfAiUnavailable):
         pdf_ai.extract_line_items(b"%PDF-1.4 ...")
+    with pytest.raises(pdf_ai.PdfAiUnavailable):
+        pdf_ai.identify_suppliers_from_images([{"image_png": b"\x89PNG"}], [])
+
+
+def test_identify_from_images_rejects_unrenderable_docs(monkeypatch):
+    """A doc with no rendered image would silently shift every LATER document's
+    number, mis-attributing suppliers — fail instead so the caller falls back."""
+    monkeypatch.setattr(pdf_ai.settings, "PDF_AI_ENABLED", True, raising=False)
+    monkeypatch.setattr(pdf_ai.settings, "GEMINI_API_KEY", "k", raising=False)
+    with pytest.raises(pdf_ai.PdfAiUnavailable):
+        pdf_ai.identify_suppliers_from_images([], [])
+    with pytest.raises(pdf_ai.PdfAiUnavailable):
+        pdf_ai.identify_suppliers_from_images(
+            [{"image_png": b"\x89PNG"}, {"image_png": None}], [])
+
+
+# ---------------------------------------------------------------------------
+# service: detection image budget
+#
+# The model bills images by 768px tiles, so the letterhead render is sized to a
+# fixed tile budget rather than a fixed DPI. Getting this wrong is invisible —
+# detection still works, it just quietly costs more per document — so pin it.
+# ---------------------------------------------------------------------------
+def _one_page_pdf(pagesize):
+    reportlab = pytest.importorskip("reportlab")  # noqa: F841
+    from reportlab.pdfgen import canvas
+    buf = io.BytesIO()
+    c = canvas.Canvas(buf, pagesize=pagesize)
+    c.drawString(50, pagesize[1] - 60, "MED & SKIN")
+    c.drawString(pagesize[0] * 0.55, pagesize[1] - 60, "Reliable Medicare LTD")
+    c.showPage()
+    c.save()
+    return buf.getvalue()
+
+
+@pytest.mark.parametrize("pagesize", [
+    (595.28, 841.89),   # A4 portrait
+    (612.0, 792.0),     # US Letter
+    (841.89, 595.28),   # A4 landscape — a fixed scale would cost an extra tile
+    (283.46, 419.53),   # A6 — small page, must not upscale into more tiles
+])
+def test_letterhead_render_stays_within_tile_budget(pagesize):
+    pytest.importorskip("PIL")
+    from PIL import Image
+    from modules.inventory.sourcing.service import (
+        _render_first_pages, _TILE_PX, _BAND_TILE_BUDGET,
+    )
+
+    docs, index_map = _render_first_pages([(0, _one_page_pdf(pagesize))])
+    assert index_map == [0]
+    with Image.open(io.BytesIO(docs[0]["image_png"])) as img:
+        width, height = img.size
+    tiles_across = -(-width // _TILE_PX)
+    tiles_down = -(-height // _TILE_PX)
+    assert tiles_across * tiles_down <= _BAND_TILE_BUDGET, (
+        f"{width}x{height}px costs {tiles_across * tiles_down} tiles"
+    )
+
+
+def test_render_skips_unusable_files_without_raising():
+    from modules.inventory.sourcing.service import _render_first_pages
+    docs, index_map = _render_first_pages([(0, b""), (1, b"not a pdf"), (2, None)])
+    assert docs == [] and index_map == []
+
+
+# ---------------------------------------------------------------------------
+# service: company-name comparison (drives the buyer cross-check)
+# ---------------------------------------------------------------------------
+from modules.inventory.sourcing.service import _same_company  # noqa: E402
+
+
+@pytest.mark.parametrize("a,b", [
+    ("Reliable Medicare LTD", "Reliable Medicare"),        # legal suffix dropped
+    ("MED & SKIN SPRL", "Med and Skin"),                   # &/and + suffix
+    ("med-skin.be", "Med Skin"),                           # punctuation
+    ("Nordic Medical Solutions Ltd", "NORDIC MEDICAL SOLUTIONS"),
+    ("Reliable Medicare", "Reliable Medicare Pharmacy"),   # containment
+])
+def test_same_company_matches_variants(a, b):
+    assert _same_company(a, b) is True
+
+
+@pytest.mark.parametrize("a,b", [
+    ("Med & Skin", "Reliable Medicare LTD"),               # the real-world case
+    ("GDA Srl", "GHMC"),
+    ("Nordic Medical Solutions", "Iberian Medical Supplies"),
+    ("Pharma Group Ltd", "Medica Group Ltd"),              # one shared word only
+    ("Med & Skin", ""),                                    # nothing to compare
+    ("", ""),
+    ("Ltd", "Ltd"),                                        # suffixes only → no tokens
+])
+def test_same_company_rejects_different_firms(a, b):
+    assert _same_company(a, b) is False
 
 
 # ---------------------------------------------------------------------------
@@ -120,6 +214,64 @@ def test_public_calls_raise_when_disabled(monkeypatch):
 # ---------------------------------------------------------------------------
 def _svc():
     return SourcingService()
+
+
+# ---------------------------------------------------------------------------
+# service: supplier-detection guards (buyer cross-check + confidence gate)
+# ---------------------------------------------------------------------------
+_KNOWN = {"ms": {"id": 7, "name": "Med & Skin Pharma"}}
+
+
+def _detect(result):
+    """Run one model answer through the guards and return the resulting entry."""
+    from modules.inventory.sourcing.service import _IDENTIFY_EMPTY
+    entry = dict(_IDENTIFY_EMPTY)
+    _svc()._apply_supplier_detection(entry, result, _KNOWN)
+    return entry
+
+
+def test_detection_auto_selects_confident_match():
+    entry = _detect({"detected_name": "MED & SKIN SPRL", "buyer_name": "Reliable Medicare LTD",
+                     "matched_code": "MS", "confidence": 0.93})
+    assert entry["matched_supplier_id"] == 7
+    assert entry["suggested_supplier_id"] is None
+    assert entry["detected_name"] == "MED & SKIN SPRL"
+
+
+def test_detection_downgrades_low_confidence_match_to_suggestion():
+    """A weak letterhead read must never import against a supplier unasked."""
+    entry = _detect({"detected_name": "MED & SKIN SPRL", "buyer_name": "Reliable Medicare LTD",
+                     "matched_code": "MS", "confidence": 0.4})
+    assert entry["matched_supplier_id"] is None
+    assert entry["suggested_supplier_id"] == 7
+    assert entry["suggested_supplier_name"] == "Med & Skin Pharma"
+
+
+def test_detection_discarded_when_supplier_equals_buyer():
+    """The real failure: the model answers with the addressee (whose name is the
+    only company in the text layer) instead of the letterhead's owner."""
+    entry = _detect({"detected_name": "Reliable Medicare LTD", "buyer_name": "Reliable Medicare",
+                     "matched_code": "", "confidence": 0.9})
+    assert entry["detected_name"] is None          # not offered as a new supplier
+    assert entry["matched_supplier_id"] is None
+    assert entry["suggested_supplier_id"] is None
+    assert entry["confidence"] == 0.0
+
+
+def test_detection_keeps_unknown_supplier_for_the_create_prompt():
+    """An unknown supplier that ISN'T the buyer still steers the user to create it."""
+    entry = _detect({"detected_name": "New Aesthetics GmbH", "buyer_name": "Reliable Medicare LTD",
+                     "matched_code": "", "confidence": 0.88})
+    assert entry["detected_name"] == "New Aesthetics GmbH"
+    assert entry["matched_supplier_id"] is None and entry["suggested_supplier_id"] is None
+
+
+def test_detection_tolerates_missing_fields():
+    entry = _detect({})
+    assert entry["detected_name"] is None and entry["confidence"] == 0.0
+    # An unknown code can't match anything, confidence notwithstanding.
+    assert _detect({"detected_name": "X Ltd", "matched_code": "zz",
+                    "confidence": 1.0})["matched_supplier_id"] is None
 
 
 def test_confidence_empty_is_zero():

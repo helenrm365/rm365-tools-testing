@@ -355,9 +355,13 @@ class PdfSupplierIdentifyResponse(BaseModel):
     enabled: bool = False
     # Supplier name read off the document (None if undetectable).
     detected_name: Optional[str] = None
-    # A known supplier the detection maps to, if any.
+    # A known supplier the detection maps to CONFIDENTLY — safe to auto-select.
     matched_supplier_id: Optional[int] = None
     matched_supplier_name: Optional[str] = None
+    # A known supplier the detection landed on but wasn't confident enough to
+    # auto-select: pre-fill it, but always have the user confirm.
+    suggested_supplier_id: Optional[int] = None
+    suggested_supplier_name: Optional[str] = None
     confidence: float = 0.0
 
 
